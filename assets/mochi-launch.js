@@ -12,6 +12,7 @@
   var query = {
     primitive: "?v=1402s&log=1&stop=primitive&attempts=8",
     host: "?v=1402h&log=1&stop=host&attempts=8",
+    unified: "?v=1402d&log=1&diag=full&afterglow=run&mode=kpstep&g=drain:16&g=drainsz:0x4000&attempts=8",
     probe: "?v=1402s&log=1&afterglow=probe&mode=kpstep&g=drain:16&g=drainsz:0x4000",
     kernel: "?v=1402s&log=1&afterglow=run&mode=kpstep&g=drain:16&g=drainsz:0x4000"
   };

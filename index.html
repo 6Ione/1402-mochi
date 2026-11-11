@@ -14,14 +14,14 @@
 <div class="shell">
   <header class="masthead">
     <a class="brand" href="./index.html"><span class="brand-mark"><img src="./assets/mochi-icon.png" alt=""></span><span>mochi<span class="brand-dot">.</span><small>PLAYSTATION 4 · WEBKIT RESEARCH</small></span></a>
-    <div class="head-right"><span class="chip chip-fw" id="fw-chip">FW 14.02 TARGET</span><span class="chip">v0.4.3 · HOST VALIDATION</span></div>
+    <div class="head-right"><span class="chip chip-fw" id="fw-chip">FW 14.02 TARGET</span><span class="chip">v0.4.4 · UNIFIED TRACE</span></div>
   </header>
   <main>
     <section class="hero">
       <div class="hero-copy">
         <div class="eyebrow"><span class="live-dot"></span> MOCHI ENGINE · AFTERGLOW BASELINE</div>
         <h1>A little magic.<br><em>A lot of engineering.</em></h1>
-        <p>One place to launch the existing WebKit entry and experimental Afterglow 14.02 chain. Choose a mode; the console displays live output as it runs.</p>
+        <p>One place to launch the existing WebKit entry and experimental Afterglow 14.02 chain. Use Unified trace to run the known WebKit host, native read-only check, and existing Afterglow route in one session. Stops are reported by stage.</p>
         <div class="compat-line"><span class="mini-dot"></span><span id="detected">Checking PS4 browser…</span></div>
       </div>
       <div class="hero-mascot"><span class="orbit o1"></span><span class="orbit o2"></span><img src="./assets/mochi-mascot.png" alt="Mochi mascot holding a glowing device"><span class="sparkle s1">✧</span><span class="sparkle s2">✦</span></div>
@@ -30,6 +30,11 @@
     <section class="control-panel" aria-label="Mochi launch controls">
       <div class="section-head"><div><span class="kicker">01 / CONTROL CENTER</span><h2>Choose your launch mode</h2></div><span class="stage-pill">MANUAL START</span></div>
       <div class="mode-list">
+        <article class="mode recommended">
+          <div class="mode-icon">✦</div>
+          <div class="mode-body"><div class="mode-name">Unified failure trace <span class="small-tag">RECOMMENDED</span></div><p>One launch: primitive → 15 host signatures → syscall discovery → read-only native calls → existing Afterglow. Detailed stop reasons and optional LAN log capture. Does not bypass kernel safety guards.</p></div>
+          <button class="btn btn-primary" data-mode="unified">Run full trace <span>↗</span></button>
+        </article>
         <article class="mode recommended">
           <div class="mode-icon">◇</div>
           <div class="mode-body"><div class="mode-name">WebKit primitive <span class="small-tag">FIRST CHECK</span></div><p>Exercises the existing browser primitive and base-resolution checks; does not enter the kernel stage.</p></div>
@@ -64,5 +69,5 @@
   </main>
   <footer><span>Mochi 14.02 · launcher overlay</span><span>Underlying Afterglow and raw13g credits remain in the source repository.</span></footer>
 </div>
-<script src="./assets/mochi-launch.js?v=043"></script>
+<script src="./assets/mochi-launch.js?v=044"></script>
 </body></html>

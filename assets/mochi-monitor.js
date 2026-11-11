@@ -1,38 +1,56 @@
-// JavaScript | assets/mochi-monitor.js | PS4 WebKit browser | Read-only classification of existing Afterglow console output
+// JavaScript | assets/mochi-monitor.js | PS4 WebKit browser | Stage-aware status classification without speculative success
 (function () {
   "use strict";
   function id(x) { return document.getElementById(x); }
   var params = window.location.search || "";
-  var mode = /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION" : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY" : /(?:\?|&)afterglow=probe(?:&|$)/.test(params) ? "AFTERGLOW PREFLIGHT" : /(?:\?|&)afterglow=run(?:&|$)/.test(params) ? "KERNEL EXPERIMENT" : "ENGINE TRACE";
+  var mode = /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
+    : /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
+    : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY"
+    : /(?:\?|&)afterglow=probe(?:&|$)/.test(params) ? "AFTERGLOW PREFLIGHT"
+    : /(?:\?|&)afterglow=run(?:&|$)/.test(params) ? "KERNEL EXPERIMENT" : "ENGINE TRACE";
   if (id("active-mode")) id("active-mode").textContent = mode;
-  var consoleEl = id("out"), lastText = "";
+  var output = id("out"), previous = "";
+  function set(name, value, klass) { var e=id(name);if(e){e.textContent=value;if(klass)e.className=klass;} }
+  function last(t, re) { var m, x=null;re.lastIndex=0;while((m=re.exec(t)))x=m;return x; }
   function update() {
-    if (!consoleEl) return;
-    var t = consoleEl.textContent || "";
-    if (t === lastText) return;
-    lastText = t;
-    var primitive = id("m-primitive"), gadget = id("m-gadget"), kernel = id("m-afterglow"), state = id("m-state"), final = id("m-final");
-    var failed = /(?:AG-RUN-RETURNED-FAILURE|AG-FAIL|exploit failed|PROOF-FAIL)/i.test(t);
-    if (primitive && /(?:READ-PRIMITIVE-PASS|PRIMITIVE-OK|PRIMITIVE-ONLY\s+PASS)/i.test(t)) { primitive.textContent = "Reported PASS"; primitive.className = "good"; }
-    if (gadget) {
-      var m = /gadget-table-fits-module[^\n]*(\d+)\s*\/\s*(\d+)/i.exec(t);
-      if (m) { gadget.textContent = m[1] + " / " + m[2] + " signatures"; gadget.className = Number(m[1]) === Number(m[2]) ? "good" : "caution-text"; }
+    if (!output) return;
+    var t = output.textContent || "";
+    if (t===previous)return;
+    previous=t;
+    var primitive=/(?:READ-PRIMITIVE-PASS|PRIMITIVE-OK|PRIMITIVE-ONLY\s+PASS)/.test(t);
+    if(primitive)set("m-primitive","Reported PASS","good");
+    var gadget=last(t,/gadget-table-fits-module[^\n]*?(\d+)\s*\/\s*(\d+)/gi);
+    if(gadget)set("m-gadget",gadget[1]+" / "+gadget[2]+" signatures",+gadget[1]===+gadget[2]?"good":"bad");
+    var step=last(t,/MOCHI-STEP\s+([^\n]+)/g), kstep=last(t,/AG-DIAG\s+([^\n]+)/g);
+    if (step || kstep) {
+      var a=step?step.index:-1, b=kstep?kstep.index:-1;
+      set("mochi-boundary",(b>a ? kstep[1] : step[1]).slice(0,140));
     }
-    if (gadget && /HOST-VALIDATION\s+FAIL/i.test(t)) { gadget.textContent = "Host validation failed"; gadget.className = "bad"; }
-    if (kernel) {
-      if (/AG-RUN-RETURNED-SUCCESS/i.test(t)) { kernel.textContent = "Completion returned · unverified"; kernel.className = "caution-text"; }
-      else if (/AG-PREFLIGHT-PASS/i.test(t)) { kernel.textContent = "Preflight reported PASS"; kernel.className = "caution-text"; }
-      else if (failed) { kernel.textContent = "Failure reported"; kernel.className = "bad"; }
+    var stop=last(t,/AG-STOP\s+([^\n]+)/g) || last(t,/MOCHI-STOP\s+([^\n]+)/g);
+    if(stop) {
+      set("mochi-stop", stop[1].slice(0,155), "bad");
+      set("m-afterglow","Stopped · see reason","bad");
+      set("m-state","STOP REASON RECORDED","bad");
+    } else if(/AG-RUN-RETURNED-FAILURE/.test(t)) {
+      set("mochi-stop","Afterglow returned failure; specific cause not established","bad");
+      set("m-afterglow","Failure reported","bad");
+    } else if(/AG-RUN-RETURNED-SUCCESS/.test(t)) {
+      set("m-afterglow","Interface returned · not kernel proof","caution-text");
+      set("mochi-stop","Kernel success requires independent verification");
+    } else if(/AG-PREFLIGHT-PASS/.test(t)) {
+      set("m-afterglow","Preflight PASS only","caution-text");
     }
-    if (state && /HOST-VALIDATION\s+FAIL/i.test(t)) { state.textContent = "Host validation failed — inspect console"; state.className = "bad"; }
-    else if (state && /HOST-VALIDATION\s+PASS/i.test(t)) { state.textContent = "Host checks passed — no kernel execution"; state.className = "good"; }
-    else if (state && failed) { state.textContent = "Failure reported — inspect console"; state.className = "bad"; }
-    else if (state && /AG-RUN-RETURNED-SUCCESS/i.test(t)) state.textContent = "Stage returned completion; verify independently";
-    else if (state && /PRIMITIVE-ONLY\s+PASS/i.test(t)) state.textContent = "WebKit-only mode complete";
-    if (final) final.textContent = "NO INDEPENDENT KERNEL PROOF";
+    if (/HOST-VALIDATION\s+FAIL/.test(t)) set("m-state","HOST VALIDATION FAILED","bad");
+    if (/HOST-VALIDATION\s+PASS/.test(t)) set("m-state","Host checks passed; native/kernel not tested","good");
+    if (!stop && !/AG-RUN-RETURNED-FAILURE/.test(t) && /MOCHI-STEP\s+03 native-readonly-call pass/.test(t)) set("mochi-stop","Read-only native calls passed; kernel unverified","good");
+    if (/MOCHI-IMPORT-FAIL/.test(t)) set("mochi-stop","JavaScript module import failed","bad");
+    set("m-final","KERNEL STATUS: NOT INDEPENDENTLY VERIFIED");
   }
-  if (window.MutationObserver && consoleEl) {
-    new MutationObserver(update).observe(consoleEl, {childList:true,characterData:true,subtree:true});
-  }
-  window.setInterval(update, 1500);
+  var updateScheduled = false;
+  if (window.MutationObserver && output) new MutationObserver(function () {
+    if (updateScheduled) return;
+    updateScheduled = true;
+    window.setTimeout(function () { updateScheduled=false; update(); }, 350);
+  }).observe(output,{childList:true,characterData:true,subtree:true});
+  window.setInterval(update,1500);
 }());

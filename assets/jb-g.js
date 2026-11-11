@@ -11,6 +11,7 @@ let passCount = 0,
 let armedEver = false;
 const params = new URLSearchParams(location.search);
 const HOST_AUDIT_MODE = params.get("stop") === "host";
+const MOCHI_DIAG = params.get("diag") === "full";
 
 /* The retry notice. Two things lead here: the chain throws, or it stalls
    without a word. The watchdog covers the second case. It cannot fire when
@@ -39,6 +40,7 @@ const WATCHDOG_MS = 45000;
 const watchdog = setInterval(function () {
   if (Date.now() - lastMark > WATCHDOG_MS) {
     try { clearInterval(watchdog); } catch (e) {}
+    if (MOCHI_DIAG) mark("MOCHI-STOP", "code=WATCHDOG-NO-PROGRESS elapsed_ms=" + WATCHDOG_MS + " webprocess_alive=true");
     showRetry();
   }
 }, 5000);
@@ -108,7 +110,7 @@ const PROSE = [
   /\s+\([a-z][^)]{40,}\)/,
 ];
 function terse(s) {
-  if (VERBOSE || s == null) return s;
+  if (VERBOSE || MOCHI_DIAG || s == null) return s;
   s = String(s);
   for (const re of PROSE) {
     const m = re.exec(s);
@@ -249,12 +251,14 @@ function mark(tag, detail) {
         : "  " + detail
     ),
   );
+  // A buffered, opt-in LAN collector; no synchronous network call in the exploit path.
+  if (MOCHI_DIAG) {
+    try { if (window.MochiCapture) window.MochiCapture.push(tag, String(raw == null ? "" : raw)); }
+    catch (ignored) {}
+  }
 
-  if (lines.length > 600) {
-    lines.splice(
-      0,
-      lines.length - 600,
-    );
+  if (lines.length > (MOCHI_DIAG ? 1500 : 600)) {
+    lines.splice(0, lines.length - (MOCHI_DIAG ? 1500 : 600));
   }
 
   if (SHOW_LOG && outEl) {
@@ -413,6 +417,10 @@ let allDone = false,
 
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
+    if (MOCHI_DIAG) {
+      mark("MOCHI-RUN", "v0.4.4 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
+      mark("MOCHI-STEP", "01 primitive start; native-call=no; kernel=no");
+    }
 
     if (PRIMITIVE_ONLY) {
       state("testing WebKit primitive...", "warn");
@@ -809,6 +817,7 @@ let allDone = false,
       scanned++;
     }
     mark("STUBS", "seeded=" + seeded + " scanned=" + scanned);
+    if (MOCHI_DIAG) mark("MOCHI-STEP", "02 host byte-signatures=" + gated + "/" + GAD.length + " stubs-seeded=" + seeded + " stubs-scanned=" + scanned);
     const miss = Object.keys(SYS).filter((k) => !stubAddr.has(SYS[k]));
     if (!check("syscall-page-needs-stub", miss.length === 0, miss.join(","))) {
       if (HOST_VALIDATE) {
@@ -975,6 +984,27 @@ let allDone = false,
       const a = new int64(r.lo, r.hi);
       return a.hi === 0 && a.low === 0 ? -1 : p.read4(a) | 0;
     }
+    if (MOCHI_DIAG) {
+      mark("MOCHI-STEP", "03 native-readonly-call starting: getpid/getuid; no kernel memory access");
+      let nativePid = -1, nativeUid = -1;
+      try {
+        nativePid = sc(SYS.getpid).i32;
+        nativeUid = sc(SYS.getuid).i32;
+      } catch (nativeErr) {
+        mark("MOCHI-STOP", "code=NATIVE-CALL-EXCEPTION detail=" + String(nativeErr));
+        try { if (mainArmed) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (ignore) {}
+        allDone = true;
+        return;
+      }
+      mark("MOCHI-NATIVE", "getpid=" + nativePid + " getuid=" + nativeUid + " meaning=userland-syscalls-only");
+      if (nativePid <= 0 || nativeUid < 0) {
+        mark("MOCHI-STOP", "code=NATIVE-CALL-BAD-RETURN pid=" + nativePid + " uid=" + nativeUid);
+        try { if (mainArmed) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (ignore) {}
+        allDone = true;
+        return;
+      }
+      mark("MOCHI-STEP", "03 native-readonly-call pass; kernel-not-proven");
+    }
     async function relaunchPayload() {
       let blob = null;
       try {
@@ -1038,6 +1068,10 @@ let allDone = false,
          (afterglow=probe) fires no trigger and patches nothing, so a restored
          page may run that. */
       try {
+        if (MOCHI_DIAG) {
+          mark("MOCHI-STEP", "04 afterglow-enter; original guard and trigger path retained");
+          mark("MOCHI-COMPAT", "14.02-kernel-vulnerability=UNKNOWN; successful-userland-RWX-is-not-kernel-proof");
+        }
         const ag = await import("./afterglow-g.js?v=1402s");
         // Exactly what afterglow reaches for, counted rather than guessed.
         const agCtx = {
@@ -1072,10 +1106,14 @@ let allDone = false,
               ? "runAfterglow returned its completion interface"
               : "runAfterglow returned false; no success will be displayed",
           );
+          if (MOCHI_DIAG) mark("MOCHI-RESULT", agSucceeded
+            ? "AFTERGLOW-RETURNED-INTERFACE; kernel-state-not-independently-attested"
+            : "AFTERGLOW-FAILED; classify-last-AG-STOP; vulnerability-status-unknown");
           finishUI(agSucceeded);
         }
       } catch (agError) {
-        mark("AG-FAIL", agError && agError.message ? agError.message : String(agError));
+        mark("AG-FAIL", agError && (agError.stack || agError.message) ? (agError.stack || agError.message) : String(agError));
+        if (MOCHI_DIAG) mark("MOCHI-STOP", "code=AFTERGLOW-JS-EXCEPTION");
         if (!SHOW_LOG) finishUI(false);
       }
       allDone = true;
@@ -1099,7 +1137,9 @@ let allDone = false,
     try { if (mainArmed && mainMf && mainOrig && p) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (e) {}
     try { finishUI(false); } catch (e) {}
   } catch (eOuter) {
-    try { mark("JB-THREW", (eOuter && eOuter.message) || String(eOuter)); } catch (e) {}
+    try { mark("JB-THREW", (eOuter && (eOuter.stack || eOuter.message)) || String(eOuter));
+      if (MOCHI_DIAG) mark("MOCHI-STOP", "code=HOST-JS-EXCEPTION");
+    } catch (e) {}
     try { clearInterval(watchdog); } catch (e) {}
     // Put it on the television. A failure in the WebKit stage touched
     // NOTHING -- no apm unit spent, no kernel byte written. Reopening the
