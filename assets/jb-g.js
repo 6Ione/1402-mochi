@@ -10,6 +10,7 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
+const HOST_AUDIT_MODE = params.get("stop") === "host";
 
 /* The retry notice. Two things lead here: the chain throws, or it stalls
    without a word. The watchdog covers the second case. It cannot fire when
@@ -275,6 +276,10 @@ function state(t, c) {
   stateEl.className = c || "";
 }
 function check(name, ok, detail) {
+  if (HOST_AUDIT_MODE && /^(kernel-table-present|kpatch-table-present|payload-table-present)$/.test(name)) {
+    mark("HOST-NOT-TESTED", name + " (outside userland host scope)");
+    return true;
+  }
   if (ok) {
     passCount++;
     mark("PROOF-OK", name + (detail ? "  " + detail : ""));
@@ -407,6 +412,7 @@ let allDone = false,
     const ATTEMPTS = Math.max(1, parseInt(params.get("attempts") || "8", 10) || 8);
 
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
+    const HOST_VALIDATE = params.get("stop") === "host";
 
     if (PRIMITIVE_ONLY) {
       state("testing WebKit primitive...", "warn");
@@ -494,7 +500,7 @@ let allDone = false,
 
     // afterglow brings its own kernel stage, so this run does not need the
     // host's kernel table at all.
-    const OWN_KERNEL_STAGE = !!params.get("afterglow");
+    const OWN_KERNEL_STAGE = !!params.get("afterglow") || HOST_VALIDATE;
     const NEED_K = OWN_KERNEL_STAGE ? [] : [
       "k_idt_rsvd",
       "k_oid_kern_file",
@@ -707,8 +713,10 @@ let allDone = false,
         aligned(webkitBase) && aligned(libkernelBase),
         "",
       )
-    )
+    ) {
+      if (HOST_VALIDATE) mark("HOST-VALIDATION", "FAIL module-bases-alignment");
       return;
+    }
 
     const G = {};
     const GAD = [
@@ -758,8 +766,10 @@ let allDone = false,
         gated === GAD.length,
         gated + "/" + GAD.length,
       )
-    )
+    ) {
+      if (HOST_VALIDATE) mark("HOST-VALIDATION", "FAIL gadget-signatures=" + gated + "/" + GAD.length);
       return;
+    }
     const argGadget = [
       G.POP_RDI_RET,
       G.POP_RSI_RET,
@@ -800,8 +810,25 @@ let allDone = false,
     }
     mark("STUBS", "seeded=" + seeded + " scanned=" + scanned);
     const miss = Object.keys(SYS).filter((k) => !stubAddr.has(SYS[k]));
-    if (!check("syscall-page-needs-stub", miss.length === 0, miss.join(",")))
+    if (!check("syscall-page-needs-stub", miss.length === 0, miss.join(","))) {
+      if (HOST_VALIDATE) {
+        mark("HOST-VALIDATION", "FAIL syscall-stubs-missing=" + miss.join(","));
+        state("Host validation incomplete: syscall stubs missing", "bad");
+        allDone = true;
+      }
       return;
+    }
+
+    // Host validation ends before the native-call bridge, ROP context,
+    // kernel trigger, or payload-handling stages are entered.
+    if (HOST_VALIDATE) {
+      mark("HOST-VALIDATION", "PASS scoped=module-bases+15-gadget-signatures+syscall-stubs");
+      mark("HOST-BOUNDARY", "no-native-call no-kernel-attempt no-payload");
+      state("Host signatures and syscall stubs passed; no kernel execution", "good");
+      allDone = true;
+      finishUI(true);
+      return;
+    }
 
     function bufAddr(ab) {
       const c = p.leakval(ab);
