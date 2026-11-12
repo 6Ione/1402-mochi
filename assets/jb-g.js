@@ -1,8 +1,7 @@
-// JavaScript | assets/jb-g.js | PS4 WebKit | Mochi v0.4.11 engine entry and terminal classification
-import { establishPrimitive } from "./core.js?v=0411";
-import { installWindowP, pairStatus } from "./mem.js?v=0411";
-import { int64 } from "./int64.js?v=0411";
-import { offsetsFor, PS4 } from "./ps4_offsets.js?v=0411";
+import { establishPrimitive } from "./core.js?v=1402";
+import { installWindowP, pairStatus } from "./mem.js?v=1402";
+import { int64 } from "./int64.js?v=1402";
+import { offsetsFor, PS4 } from "./ps4_offsets.js?v=1402";
 
 const outEl = document.getElementById("out");
 const stateEl = document.getElementById("state");
@@ -11,11 +10,7 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
-const MOCHI_ENGINE_BUILD = "v0.4.11";
-const MOCHI_IMPORT_REVISION = "0411";
-const CORE_EVENT_LOG = /^(?:CORE-PROFILE|ATTEMPT-START|ADDROF-COVERAGE|ADDROF-FAIL|ADDROF-NO-RESULT|ADDROF-THREW|ZERO-HEADER-MISS|MOCHI-COVERAGE-REJECT|MOCHI-BOUNDED-RETRY|AUTO-RETRY-NOT-SCHEDULED|AUTO-RETRY-CANCELLED|CORE-GIVE-UP|READ-PRIMITIVE-PASS|READ-PRIMITIVE-MISMATCH|SETUP-THREW|LOAD-THREW|COMPOSITION-THREW)$/i;
-function coreEventWriter(tag) { return CORE_EVENT_LOG.test(tag) ? mark : trace; }
-const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native";
+const HOST_AUDIT_MODE = params.get("stop") === "host";
 const MOCHI_DIAG = params.get("diag") === "full";
 
 /* The retry notice. Two things lead here: the chain throws, or it stalls
@@ -38,7 +33,7 @@ function showNotice(text) {
 function showRetry() {
   if (retryShown) return;
   retryShown = true;
-  showNotice("Test stopped. Review the stop reason before another attempt.");
+  showNotice("exploit failed - please retry (reopen browser)");
 }
 
 const WATCHDOG_MS = 45000;
@@ -423,10 +418,7 @@ let allDone = false,
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
     if (MOCHI_DIAG) {
-      mark("MOCHI-RUN", MOCHI_ENGINE_BUILD + " diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
-      mark("MOCHI-ENGINE", "entry=jb-g.js?v=" + MOCHI_IMPORT_REVISION +
-        " core=core.js?v=" + MOCHI_IMPORT_REVISION + " cache_revision=" + MOCHI_IMPORT_REVISION +
-        " configured_attempts=" + ATTEMPTS + " requested_mem=" + (params.get("mem") || "default"));
+      mark("MOCHI-RUN", "v0.4.4 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
       mark("MOCHI-STEP", "01 primitive start; native-call=no; kernel=no");
     }
 
@@ -437,7 +429,7 @@ let allDone = false,
         setTimeout(resolve, 0);
       });
 
-      const PRIMITIVE_LOUD = CORE_EVENT_LOG;
+      const PRIMITIVE_LOUD = /FAIL|ERROR|THREW|RETRY|ABORT|PASS/i;
 
       const carrier = await establishPrimitive({
         maxAttempts: ATTEMPTS,
@@ -516,7 +508,7 @@ let allDone = false,
 
     // afterglow brings its own kernel stage, so this run does not need the
     // host's kernel table at all.
-    const OWN_KERNEL_STAGE = !!params.get("afterglow") || HOST_VALIDATE || params.get("stop") === "native";
+    const OWN_KERNEL_STAGE = !!params.get("afterglow") || HOST_VALIDATE;
     const NEED_K = OWN_KERNEL_STAGE ? [] : [
       "k_idt_rsvd",
       "k_oid_kern_file",
@@ -671,7 +663,7 @@ let allDone = false,
     state("running the primitive...", "warn");
     await new Promise((r) => setTimeout(r, 0));
 
-    const PRIMITIVE_LOUD = CORE_EVENT_LOG;
+    const PRIMITIVE_LOUD = /FAIL|ERROR|THREW|RETRY|ABORT|PASS/i;
     const carrier = await establishPrimitive({
       maxAttempts: ATTEMPTS,
       onEvent: (t, d, a) =>
@@ -1012,16 +1004,6 @@ let allDone = false,
         return;
       }
       mark("MOCHI-STEP", "03 native-readonly-call pass; kernel-not-proven");
-      if (params.get("stop") === "native") {
-        mark("MOCHI-STOP", "code=NATIVE-ONLY-PASS; kernel-trigger=NOT-REACHED; payload=NOT-LOADED");
-        try { if (mainArmed && mainMf && mainOrig && p) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (restoreError) {
-          mark("MOCHI-STOP", "code=NATIVE-RESTORE-ERROR detail=" + String(restoreError));
-        }
-        state("Native getpid/getuid returned; stopped before Afterglow", "good");
-        allDone = true;
-        finishUI(true);
-        return;
-      }
     }
     async function relaunchPayload() {
       let blob = null;
@@ -1090,7 +1072,7 @@ let allDone = false,
           mark("MOCHI-STEP", "04 afterglow-enter; original guard and trigger path retained");
           mark("MOCHI-COMPAT", "14.02-kernel-vulnerability=UNKNOWN; successful-userland-RWX-is-not-kernel-proof");
         }
-        const ag = await import("./afterglow-g.js?v=0411");
+        const ag = await import("./afterglow-g.js?v=1402s");
         // Exactly what afterglow reaches for, counted rather than guessed.
         const agCtx = {
           p: p, callAddr: callAddr, bufAddr: bufAddr, errno: errno,
@@ -1155,16 +1137,8 @@ let allDone = false,
     try { if (mainArmed && mainMf && mainOrig && p) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (e) {}
     try { finishUI(false); } catch (e) {}
   } catch (eOuter) {
-    try {
-      const coreStopped = !!(eOuter && eOuter.code === "MOCHI_CORE_GIVEUP");
-      const reason = coreStopped ? String(eOuter.reason || "unknown") : "";
-      mark(coreStopped ? "MOCHI-CORE-REJECTED" : "JB-THREW",
-        coreStopped ? ("reason=" + reason + " attempts=" + eOuter.attempts +
-          " max=" + eOuter.maxAttempts) :
-          ((eOuter && (eOuter.stack || eOuter.message)) || String(eOuter)));
-      if (MOCHI_DIAG) mark("MOCHI-STOP", coreStopped
-        ? ("code=WEBKIT-PRIMITIVE-REJECTED reason=" + reason + " attempts=" + eOuter.attempts)
-        : "code=HOST-JS-EXCEPTION");
+    try { mark("JB-THREW", (eOuter && (eOuter.stack || eOuter.message)) || String(eOuter));
+      if (MOCHI_DIAG) mark("MOCHI-STOP", "code=HOST-JS-EXCEPTION");
     } catch (e) {}
     try { clearInterval(watchdog); } catch (e) {}
     // Put it on the television. A failure in the WebKit stage touched
