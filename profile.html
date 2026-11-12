@@ -1,0 +1,31 @@
+<!-- HTML | profile.html | PS4 browser | passive firmware offset profile comparison; no exploit -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mochi · 14.02 profile evidence</title>
+<link rel="stylesheet" href="./assets/mochi-launch.css?v=044r3"><style>
+.shell{max-width:900px}.masthead{height:72px}.panel{margin-top:24px;background:#20223d;border:1px solid #635b81;border-radius:16px;padding:24px}.panel h1{font-size:27px;margin:0 0 8px}.panel p{font-size:14px;color:#c5bed9}pre{white-space:pre-wrap;word-break:break-word;color:#e0edec;font:15px/1.7 Consolas,monospace;background:#111524;border:1px solid #454260;padding:20px;border-radius:10px;min-height:240px}.btn{display:inline-block;font-size:16px;margin:10px 0}
+</style></head><body><div class="shell"><header class="masthead"><div class="brand">Mochi <small>v0.4.4-R3 · passive profile</small></div><span class="chip">NO EXPLOIT</span></header><main class="panel"><h1>Firmware reference check</h1><p>Reads the browser user agent and our JavaScript offset table. This does not access kernel memory or validate the actual binary version.</p><pre id="out">PROFILE-START...
+Loading offset definitions...
+</pre><a class="btn btn-soft" href="./index.html?v=044r3">Back to Mochi</a></main><footer>All kernel access disabled · No HEN launch</footer></div>
+<script type="module">
+var out=document.getElementById('out');
+function log(tag, detail){out.textContent+=tag+' '+detail+'\n';}
+try {
+  import('./assets/baseline-044r3/ps4_offsets.js?v=044r3').then(function(mod) {
+  var fw=mod.offsetsFor(navigator.userAgent || '');
+  var a=mod.PS4['14.00']||{}, b=mod.PS4['14.02']||{};
+  var keys=Object.keys(a).filter(function(k){return k.indexOf('wk_')===0||k==='k__error'||k==='k_scan_stage1';});
+  var matches=keys.filter(function(k){return a[k]===b[k];});
+  out.textContent='MOCHI-RUN v0.4.4-R3 mode=passive-profile\n';
+  log('FW-UA',fw.key||'NOT-PS4');
+  log('USER-AGENT', (navigator.userAgent||'N/A').slice(0,220));
+  log('MOCHI-WEBKIT-PROFILE','14.02-vs-14.00 same-reference-fields='+matches.length+'/'+keys.length);
+  log('MOCHI-PROVENANCE','14.02 profile inherits 14.00, 14.00 inherits 13.52');
+  log('MOCHI-ASSUMPTION','matching source offsets DO NOT prove identical WebKit binaries');
+  log('LIVE-GADGET-CHECK','NOT-TESTED in passive profile mode');
+  log('NATIVE-SYSCALLS','NOT-TESTED');
+  log('KERNEL','NOT-TESTED; disabled');
+  log('MOCHI-TERMINAL','mode=passive-profile result=COMPLETE');
+  }).catch(function(err) {log('MOCHI-IMPORT-FAIL',err&&err.message?err.message:String(err));});
+} catch (err) {
+  log('MOCHI-IMPORT-FAIL',err&&err.message?err.message:String(err));
+}
+</script></body></html>
