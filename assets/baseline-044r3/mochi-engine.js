@@ -11,13 +11,13 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
-const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native";
+const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native" || params.get("stop") === "apm";
 const MOCHI_DIAG = params.get("diag") === "full";
 const MOCHI_MODE = params.get("stop");
 // Explicit, non-kernel routes only. Unknown or legacy kernel URLs are refused
 // before the WebKit primitive is started. This package has no active Afterglow import.
 const MOCHI_ROUTE_ALLOWED = (
-  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native") &&
+  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native" || MOCHI_MODE === "apm") &&
   !params.has("afterglow") && !params.has("kpstep") &&
   !params.has("payload") && !params.has("patch")
 );
@@ -306,6 +306,7 @@ function check(name, ok, detail) {
 }
 
 const SYS = {
+  open: 5,
   getpid: 20,
   getuid: 0x18,
   close: 6,
@@ -347,7 +348,7 @@ let allDone = false,
 (async function () {
   if (SENT_HOME) return;
   if (!MOCHI_ROUTE_ALLOWED) {
-    mark("MOCHI-STOP", "code=ROUTE-DISABLED userland-only; valid-stop=primitive|host|native; no-kernel-launch");
+    mark("MOCHI-STOP", "code=ROUTE-DISABLED userland-only; valid-stop=primitive|host|native|apm; no-kernel-launch");
     state("This research build only runs WebKit, host or native checks", "bad");
     try { clearInterval(watchdog); } catch (ignored) {}
     return;
@@ -452,7 +453,8 @@ let allDone = false,
 
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
-    const NATIVE_VALIDATE = params.get("stop") === "native";
+    const APM_REACH = params.get("stop") === "apm";
+    const NATIVE_VALIDATE = params.get("stop") === "native" || APM_REACH;
     if (MOCHI_DIAG) {
       mark("MOCHI-RUN", "v0.4.4-R3 mode=" + MOCHI_MODE + " attempts=" + ATTEMPTS + " firmware-user-agent=" + fwKey + " original-engine=v0.4.4 inherited-webkit=13.52/14.00");
       mark("MOCHI-BOUNDARY", "userland-only afterglow-not-loaded kernel-trigger-disabled");
@@ -841,8 +843,9 @@ let allDone = false,
         seeded++;
       }
     }
+    const requiredSyscalls = Object.keys(SYS).filter((k) => k !== "open" || APM_REACH);
     const need = new Set(
-      Object.keys(SYS)
+      requiredSyscalls
         .map((k) => SYS[k])
         .filter((n) => !stubAddr.has(n)),
     );
@@ -858,7 +861,7 @@ let allDone = false,
     }
     mark("STUBS", "seeded=" + seeded + " scanned=" + scanned);
     if (MOCHI_DIAG) mark("MOCHI-STEP", "02 host byte-signatures=" + gated + "/" + GAD.length + " stubs-seeded=" + seeded + " stubs-scanned=" + scanned);
-    const miss = Object.keys(SYS).filter((k) => !stubAddr.has(SYS[k]));
+    const miss = requiredSyscalls.filter((k) => !stubAddr.has(SYS[k]));
     if (!check("syscall-page-needs-stub", miss.length === 0, miss.join(","))) {
       if (HOST_VALIDATE) {
         mark("HOST-VALIDATION", "FAIL syscall-stubs-missing=" + miss.join(","));
@@ -1056,6 +1059,19 @@ let allDone = false,
       }
     }
     if (NATIVE_VALIDATE) {
+      // Stage 4 fork: one bounded /dev/apm open/close. No kqueue, kevent,
+      // ioctl, retry loop, race, kernel memory access or payload.
+      // Refuse launch if the user came to the APM route directly (e.g. page restore).
+      if (APM_REACH && !FROM_LANDING) {
+        mark("MOCHI-APM", "REFUSED referrer-missing use-index-page no-syscalls-run");
+        var notArmedRestored = restoreMainPointer();
+        mark("MOCHI-TERMINAL", "mode=apm result=REFUSED restored=" + (notArmedRestored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
+        state("APM diagnostic requires launch from index.html", "bad");
+        allDone = true;
+        try { clearInterval(watchdog); } catch (ignored) {}
+        finishUI(false);
+        return;
+      }
       mark("MOCHI-STEP", "03 native-readonly-call starting: getpid/getuid; no kernel memory access");
       let nativePid = -1, nativeUid = -1, nativeError = null;
       try {
@@ -1065,18 +1081,60 @@ let allDone = false,
         nativeError = error;
         mark("MOCHI-STOP", "code=NATIVE-CALL-EXCEPTION detail=" + String(error));
       }
+      // Keep the main function pointer in the established native bridge until
+      // the bounded APM syscalls complete, then restore it in all cases.
+      let apmFd = -1, apmOpenErrno = null, apmClose = null, apmError = null;
+      if (APM_REACH && nativeError === null) {
+        mark("MOCHI-APM", "BEGIN single-open-close path=/dev/apm event-registration=no ioctl=no kernel-write=no");
+        try {
+          const pathString = "/dev/apm";
+          const pathBuffer = new ArrayBuffer(16);
+          const pathView = new Uint8Array(pathBuffer);
+          for (let i = 0; i < pathString.length; ++i) pathView[i] = pathString.charCodeAt(i);
+          pathView[pathString.length] = 0;
+          keepAlive.push(pathBuffer, pathView);
+          apmFd = sc(SYS.open, bufAddr(pathBuffer), 0, 0).i32;
+          if (apmFd < 0) {
+            apmOpenErrno = errno();
+            mark("MOCHI-APM", "OPEN-FAILED fd=" + apmFd + " errno=" + apmOpenErrno + " kernel-not-tested");
+          } else {
+            mark("MOCHI-APM", "OPEN-OK descriptor-acquired no-kevent-registration");
+          }
+        } catch (e) {
+          apmError = "OPEN-EXCEPTION " + String(e);
+          mark("MOCHI-APM", apmError);
+        } finally {
+          if (apmFd >= 0) {
+            try {
+              apmClose = sc(SYS.close, apmFd).i32;
+              mark("MOCHI-APM", "CLOSE-RESULT rc=" + apmClose + " one-descriptor-only");
+            } catch (e) {
+              apmError = "CLOSE-EXCEPTION " + String(e);
+              mark("MOCHI-APM", apmError);
+            }
+          }
+        }
+      }
       var restored = restoreMainPointer();
       var valid = nativeError === null && nativePid > 0 && nativeUid >= 0;
       if (nativeError === null) {
         mark("MOCHI-NATIVE", "getpid=" + nativePid + " getuid=" + nativeUid + " meaning=userland-syscalls-only");
         if (!valid) mark("MOCHI-STOP", "code=NATIVE-CALL-BAD-RETURN pid=" + nativePid + " uid=" + nativeUid);
       }
-      if (valid && restored) mark("NATIVE-ONLY-PASS", "getpid/getuid succeeded; function-pointer-restored-and-verified; kernel-not-tested");
-      mark("MOCHI-TERMINAL", "mode=native result=" + (valid && restored ? "PASS" : "FAIL") + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
-      state(valid && restored ? "Native userland calls passed; kernel untested" : "Native validation failed", valid && restored ? "good" : "bad");
+      if (APM_REACH) {
+        const reachable = apmFd >= 0 && apmClose === 0 && !apmError && valid && restored;
+        const label = reachable ? "REACHABLE" : (apmFd < 0 && apmOpenErrno !== null ? "DENIED-OR-MISSING" : "FAILED");
+        mark("MOCHI-APM", "VERDICT=" + label + " driver-open-close-only UAF=NOT-TESTED kernel-rw=NOT-TESTED");
+        mark("MOCHI-TERMINAL", "mode=apm result=" + label + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
+        state(reachable ? "APM driver reachable; UAF not tested" : "APM reachability inconclusive or denied", reachable ? "good" : "bad");
+      } else {
+        if (valid && restored) mark("NATIVE-ONLY-PASS", "getpid/getuid succeeded; function-pointer-restored-and-verified; kernel-not-tested");
+        mark("MOCHI-TERMINAL", "mode=native result=" + (valid && restored ? "PASS" : "FAIL") + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
+        state(valid && restored ? "Native userland calls passed; kernel untested" : "Native validation failed", valid && restored ? "good" : "bad");
+      }
       allDone = true;
       try { clearInterval(watchdog); } catch (ignored) {}
-      finishUI(valid && restored);
+      finishUI(APM_REACH ? (apmFd >= 0 && apmClose === 0 && !apmError && valid && restored) : (valid && restored));
       return;
     }
     // Fail closed if a future change bypasses the explicit mode branches.

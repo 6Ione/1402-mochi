@@ -1,0 +1,27 @@
+{
+  "build": "v0.4.4-R3-stage4-apm-fork",
+  "tested": "static source checks only; not tested on PS4",
+  "kernel_uaf": "NOT_DEMONSTRATED",
+  "kernel_rw": "NOT_DEMONSTRATED",
+  "core_mem_sha256_unchanged": true,
+  "files": {
+    "serve_and_capture.py": "03801e8f95b6b85697169975dd96f3a2465fae1f6ce4db1e7a0cb4180b6707e6",
+    "README_STAGE4_APM_REACH.md": "0a6441d4f5fa165be4881ac8cb2f097964cb80c3ca2d236d205a7eb1c4145859",
+    "BUILD_MANIFEST.json": "f416f53e39c59e7e1c6d0a6f8b5c90b6d690a39a69f55fb4a644c7c7bc3eafd8",
+    "launch.html": "d117efd73cb9bf2f6f05c4c0014f8bcc58218a5f53dc4ae2b145d2362a698454",
+    "README.md": "a38c79de152ee4492c2d4becea834e77b88c18060896eb69fe738f81808b9e9b",
+    "profile.html": "fa3bc69a3010e89605d16560cc95a36ebde240f6ee40eec8322929954c5c756e",
+    "index.html": "b2d38deef97f3fcec93e07fb60376dfe146501ebd3e5e0b993db3577efbb6cc3",
+    "assets/mochi-diagnostics.css": "8eb66737d655cda732b7ce07bb9abd66b1593d7ebdf90e3befaff33f46089ba4",
+    "assets/mochi-launch.css": "f938bbe362303ac40d1ef19e0ad056ff97be067168006016ed6a49024c6a8ec9",
+    "assets/mochi-monitor.js": "057f89dc4c2eff85af05d23cc64fd939c771c5c9a7ee62c9bcf814cf75770e9d",
+    "assets/mochi-icon.png": "70c489ea915bd5d9ddad6fbf3b92e45562a8f5eb8c947c7a9a91281d68c53654",
+    "assets/mochi-capture.js": "aeb61a24d789ba035901549fc60f12feafb98b15806c3d380a912eeb379c6110",
+    "assets/mochi-mascot.png": "478dca06a9bb5766b450ad7ffcd733ba0ef2617f29349336d09a8c5829c3db0e",
+    "assets/baseline-044r3/mochi-engine.js": "e1d02af59b8201b61e433ea6548b0aa3e6b7cdbccb0b24a98cf6f7bbf444a004",
+    "assets/baseline-044r3/core.js": "cfd9f607254913958d506627e35b1a72f7337fc39f08d3f560767e7e47797f87",
+    "assets/baseline-044r3/int64.js": "15181de17bb63f316f10c0e1ce8cb6341111a23016c1047af4456d47f4896c52",
+    "assets/baseline-044r3/mem.js": "e58704779bc896cf25c371181f7986d368918d4198a7f30d8d8a947b5fafc08b",
+    "assets/baseline-044r3/ps4_offsets.js": "42bcb131ae8f4840e81429cec81157ec76bacc15df16548cc2eb60c5f379e5ac"
+  }
+}
