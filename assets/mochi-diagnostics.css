@@ -1,0 +1,8 @@
+/* CSS | assets/mochi-diagnostics.css | PS4 browser | Unified stage/result panels */
+.mochi-diagbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:14px 0}
+.mochi-diagbar>div{background:rgba(27,24,56,.78);border:1px solid rgba(180,169,255,.38);border-radius:15px;padding:14px 16px;min-width:0}
+.mochi-diagbar small{display:block;font-size:11px;letter-spacing:.12em;color:#c6bff5;margin-bottom:7px}
+.mochi-diagbar strong{display:block;font-size:14px;line-height:1.55;color:#f7f3ff;overflow-wrap:anywhere}
+@media(max-width:800px){.mochi-diagbar{grid-template-columns:1fr}.mochi-diagbar>div{padding:10px 13px}}
+
+#out{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}

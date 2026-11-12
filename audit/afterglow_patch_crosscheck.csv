@@ -1,0 +1,16 @@
+label,inherited_rva,intended_patch_bytes,actual_bytes_in_supplied_ELF,matches_without_identity,warning
+bcopy,0x0000acd,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+bzero,0x02bd79d,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+pagezero,0x02bd7e1,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+memcpy,0x02bd85d,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+pagecopy,0x02bd8a1,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+copyin,0x02bda4d,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+copyinstr,0x02bdefd,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+copystr,0x02bdfcd,eb,eb,True,TARGET IDENTITY NOT VERIFIED
+"dlsym, first check",0x01b7a43,eb04,eb04,True,TARGET IDENTITY NOT VERIFIED
+"dlsym, second check",0x01b7a53,eb04,eb04,True,TARGET IDENTITY NOT VERIFIED
+"dlsym, nop and jump",0x01b7a73,90e9,90e9,True,TARGET IDENTITY NOT VERIFIED
+load_prx,0x01b7504,90e9,90e9,True,TARGET IDENTITY NOT VERIFIED
+"dlsym, open it to every caller",0x01b7ab8,90e93c01,90e93c01,True,TARGET IDENTITY NOT VERIFIED
+self verification,0x0628684,eb00,eb00,True,TARGET IDENTITY NOT VERIFIED
+delayed panic on suspend,0x0628f6f,eb00,eb00,True,TARGET IDENTITY NOT VERIFIED

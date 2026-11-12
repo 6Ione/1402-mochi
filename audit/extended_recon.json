@@ -1,0 +1,465 @@
+{
+  "artifact": "Mochi 14.02 read-only kernel reference audit",
+  "verified_on_live_hardware": false,
+  "ELF_sha256": "a1522676dabb9cb51a1f94ebced0e725b1d605202a87f6c07aad2625c169a704",
+  "ELF_bytes": 28468720,
+  "database_sha256_matches_ELF": true,
+  "provenance": "not independent; ELF and offsets supplied together",
+  "program_load_segments": [
+    {
+      "rva": "0x0",
+      "memsz": "0xcfe9a0",
+      "flags": 5
+    },
+    {
+      "rva": "0x1520000",
+      "memsz": "0x1314af0",
+      "flags": 6
+    }
+  ],
+  "anchors": {
+    "anchor": {
+      "rva": "0xe6c30",
+      "in_PT_LOAD": true,
+      "segment_flags": "RX",
+      "file_backed": true,
+      "first_bytes": "554889e5488d157a"
+    },
+    "swap_rbp_seed": {
+      "rva": "0xa80f68",
+      "in_PT_LOAD": true,
+      "segment_flags": "RX",
+      "file_backed": true,
+      "first_bytes": "d31c1cf36764f398"
+    },
+    "swap_rbp_candidate": {
+      "rva": "0xa81478",
+      "in_PT_LOAD": true,
+      "segment_flags": "RX",
+      "file_backed": true,
+      "first_bytes": "4e95c35a6dd3108b"
+    },
+    "prison0_in_afterglow": {
+      "rva": "0x1a5c110",
+      "in_PT_LOAD": true,
+      "segment_flags": "RW",
+      "file_backed": true,
+      "first_bytes": "0000000000000000"
+    },
+    "prison0_pointer_slot_in_HEN": {
+      "rva": "0x111fa18",
+      "in_PT_LOAD": false,
+      "segment_flags": null,
+      "file_backed": false,
+      "first_bytes": null
+    },
+    "rootvnode": {
+      "rva": "0x2136e90",
+      "in_PT_LOAD": true,
+      "segment_flags": "RW",
+      "file_backed": false,
+      "first_bytes": null
+    }
+  },
+  "signature_checks": {
+    "total": 38,
+    "matches": 38,
+    "unique": 15,
+    "results": [
+      {
+        "name": "XFAST_SYSCALL_addr",
+        "rva": "0x1C0",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "memcmp_addr",
+        "rva": "0x3950F0",
+        "matched": true,
+        "count_in_ELF": 18
+      },
+      {
+        "name": "malloc_addr",
+        "rva": "0x9520",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "free_addr",
+        "rva": "0x96E0",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "memcpy_addr",
+        "rva": "0x2BDB50",
+        "matched": true,
+        "count_in_ELF": 5
+      },
+      {
+        "name": "memset_addr",
+        "rva": "0x1FA900",
+        "matched": true,
+        "count_in_ELF": 360
+      },
+      {
+        "name": "strlen_addr",
+        "rva": "0x36B910",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "printf_addr",
+        "rva": "0x2E0B20",
+        "matched": true,
+        "count_in_ELF": 258
+      },
+      {
+        "name": "vm_map_lock_read_addr",
+        "rva": "0x2F7E80",
+        "matched": true,
+        "count_in_ELF": 4
+      },
+      {
+        "name": "vm_map_unlock_read_addr",
+        "rva": "0x2F7ED0",
+        "matched": true,
+        "count_in_ELF": 28
+      },
+      {
+        "name": "vm_map_lookup_entry_addr",
+        "rva": "0x2F84C0",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "proc_rwmem_addr",
+        "rva": "0x366D80",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "kmem_alloc",
+        "rva": "0x466920",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "create_thread",
+        "rva": "0x4C6C0",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "kern_reboot",
+        "rva": "0x3A2BC0",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "vm_map_delete",
+        "rva": "0x2FA980",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "vm_map_protect",
+        "rva": "0x2FCCE0",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "vm_map_findspace",
+        "rva": "0x2FAF40",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "vm_map_insert",
+        "rva": "0x2F9080",
+        "matched": true,
+        "count_in_ELF": 9771
+      },
+      {
+        "name": "vm_map_lock",
+        "rva": "0x2F7D30",
+        "matched": true,
+        "count_in_ELF": 5
+      },
+      {
+        "name": "vm_map_unlock",
+        "rva": "0x2F7DA0",
+        "matched": true,
+        "count_in_ELF": 28
+      },
+      {
+        "name": "site_00",
+        "rva": "0x2BDB5D",
+        "matched": true,
+        "count_in_ELF": 8
+      },
+      {
+        "name": "site_01",
+        "rva": "0x3B3BA0",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_02",
+        "rva": "0x3B3C10",
+        "matched": true,
+        "count_in_ELF": 3
+      },
+      {
+        "name": "site_03",
+        "rva": "0x3B3C30",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_04",
+        "rva": "0x76C9B0",
+        "matched": true,
+        "count_in_ELF": 28
+      },
+      {
+        "name": "site_05",
+        "rva": "0x1FCC01",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_06",
+        "rva": "0x2FCEBC",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_07",
+        "rva": "0x367765",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_08",
+        "rva": "0x367C51",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_09",
+        "rva": "0x478B94",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_10",
+        "rva": "0x4669EC",
+        "matched": true,
+        "count_in_ELF": 4
+      },
+      {
+        "name": "site_11",
+        "rva": "0x4669F4",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_12",
+        "rva": "0x2BDD97",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_13",
+        "rva": "0x2BDCA2",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_14",
+        "rva": "0x30492E",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_15",
+        "rva": "0x135A55",
+        "matched": true,
+        "count_in_ELF": 1
+      },
+      {
+        "name": "site_16",
+        "rva": "0x2A526A",
+        "matched": true,
+        "count_in_ELF": 1
+      }
+    ]
+  },
+  "gadget_scan": [
+    {
+      "pattern": "4895c3",
+      "hits": []
+    },
+    {
+      "pattern": "4e95c3",
+      "hits": [
+        {
+          "rva": "0xa81478",
+          "RX": true,
+          "entropy_nearby": 7.952
+        }
+      ]
+    },
+    {
+      "pattern": "4887c5c3",
+      "hits": []
+    },
+    {
+      "pattern": "4889c5c3",
+      "hits": []
+    }
+  ],
+  "afterglow_patch_bytes": {
+    "total": 15,
+    "already_equal": 15,
+    "individual": [
+      {
+        "name": "bcopy",
+        "rva": "0xacd",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "bzero",
+        "rva": "0x2bd79d",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "pagezero",
+        "rva": "0x2bd7e1",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "memcpy",
+        "rva": "0x2bd85d",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "pagecopy",
+        "rva": "0x2bd8a1",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "copyin",
+        "rva": "0x2bda4d",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "copyinstr",
+        "rva": "0x2bdefd",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "copystr",
+        "rva": "0x2bdfcd",
+        "patch_bytes": "eb",
+        "supplied_elf_bytes": "eb",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "dlsym_1",
+        "rva": "0x1b7a43",
+        "patch_bytes": "eb04",
+        "supplied_elf_bytes": "eb04",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "dlsym_2",
+        "rva": "0x1b7a53",
+        "patch_bytes": "eb04",
+        "supplied_elf_bytes": "eb04",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "dlsym_3",
+        "rva": "0x1b7a73",
+        "patch_bytes": "90e9",
+        "supplied_elf_bytes": "90e9",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "load_prx",
+        "rva": "0x1b7504",
+        "patch_bytes": "90e9",
+        "supplied_elf_bytes": "90e9",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "dlsym_4",
+        "rva": "0x1b7ab8",
+        "patch_bytes": "90e93c01",
+        "supplied_elf_bytes": "90e93c01",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "self_verification",
+        "rva": "0x628684",
+        "patch_bytes": "eb00",
+        "supplied_elf_bytes": "eb00",
+        "already_equal": true,
+        "valid_target_identification": false
+      },
+      {
+        "name": "delayed_panic_on_suspend",
+        "rva": "0x628f6f",
+        "patch_bytes": "eb00",
+        "supplied_elf_bytes": "eb00",
+        "already_equal": true,
+        "valid_target_identification": false
+      }
+    ]
+  },
+  "apm_strings": [
+    "0x786879",
+    "0x7868ab",
+    "0x79d060",
+    "0x79d071",
+    "0x79d0b3",
+    "0x79d0b9",
+    "0x79d0c0",
+    "0x79d0c4",
+    "0x79d0cd",
+    "0x79d0e1",
+    "0x79d10a",
+    "0x79d125",
+    "0x79d13a"
+  ],
+  "verdict": "No basis to assert 14.02 kernel exploit or panic; candidate anchor is RX in supplied ELF but leak identity is unproven, gadget candidate is RX but only byte-level candidate, inherited patch site identities not verified."
+}

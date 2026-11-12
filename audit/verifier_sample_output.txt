@@ -1,0 +1,13 @@
+ELF bytes: 28468720
+SHA-256: a1522676dabb9cb51a1f94ebced0e725b1d605202a87f6c07aad2625c169a704
+Matches expected JSON hash: True
+Kernel RVAs with signatures: 38 matched: 38
+Unique signatures: 15 ; ambiguous signatures: 23
+PFS entry 0x6276f0 554889e541574156
+PFS hook1 0x6a3e79 e87238f8ff4883c4
+PFS hook2 0x6a40aa e84136f8ff4883c4
+Old memcpy patch location 0x2bd85d eb415c415d415e41
+14.02 memcpy patch candidate 0x2bdb5d 76174989ea4983c2
+Swap scan pattern 4895c3 hits: []
+Swap scan pattern 4e95c3 hits: ['0xa81478']
+IMPORTANT: internal consistency cannot establish firmware authenticity or successful exploitation.
