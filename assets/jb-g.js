@@ -33,7 +33,7 @@ function showNotice(text) {
 function showRetry() {
   if (retryShown) return;
   retryShown = true;
-  showNotice("exploit failed - please retry (reopen browser)");
+  showNotice("Test stopped. Review the stop reason before another attempt.");
 }
 
 const WATCHDOG_MS = 45000;
@@ -418,7 +418,7 @@ let allDone = false,
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
     if (MOCHI_DIAG) {
-      mark("MOCHI-RUN", "v0.4.5 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
+      mark("MOCHI-RUN", "v0.4.8 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
       mark("MOCHI-STEP", "01 primitive start; native-call=no; kernel=no");
     }
 

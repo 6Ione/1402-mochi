@@ -18,6 +18,31 @@
     var t = output.textContent || "";
     if (t===previous)return;
     previous=t;
+    // Failure precedence: the WebKit result must not stay at "Not reported".
+    var coverage=last(t,/MOCHI-COVERAGE-REJECT\s+([^\n]+)/g);
+    var addrofFail=last(t,/ADDROF-FAIL\s+([^\n]+)/g);
+    var attemptLimit=/CORE-GIVE-UP|JB-THREW/.test(t);
+    if (coverage) {
+      set("m-primitive", "Coverage rejected", "bad");
+      set("mochi-stop", "COVERAGE-REJECT — no allocation growth or retry", "bad");
+      set("mochi-boundary", "WebKit address coverage check", "bad");
+      set("m-state", "TEST STOPPED SAFELY (JavaScript level)", "bad");
+      set("m-afterglow", "NOT ENTERED", "caution-text");
+      var n=/needed_bytes=(\d+)/.exec(coverage[1]);
+      var a=/available_bytes=(\d+)/.exec(coverage[1]);
+      if (n && a) set("mochi-detail", "Candidate requires " + (Number(n[1])/1048576).toFixed(1) +
+          " MiB; carrier has " + (Number(a[1])/1048576).toFixed(1) +
+          " MiB. No growth attempted.", "caution-text");
+    } else if (addrofFail && attemptLimit) {
+      set("m-primitive", "Validation failed", "bad");
+      set("mochi-stop", "WebKit candidate rejected", "bad");
+      set("m-afterglow", "NOT ENTERED", "caution-text");
+    }
+    var retry=last(t,/MOCHI-BOUNDED-RETRY\s+([^\n]+)/g);
+    if (retry && !coverage && !attemptLimit) {
+      set("mochi-detail", "Bounded retry: " + retry[1].replace(/-/g, " ").slice(0,115), "caution-text");
+      set("m-primitive", "Retrying safe setup miss", "caution-text");
+    }
     var primitive=/(?:READ-PRIMITIVE-PASS|PRIMITIVE-OK|PRIMITIVE-ONLY\s+PASS)/.test(t);
     if(primitive)set("m-primitive","Reported PASS","good");
     var gadget=last(t,/gadget-table-fits-module[^\n]*?(\d+)\s*\/\s*(\d+)/gi);

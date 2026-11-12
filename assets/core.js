@@ -209,6 +209,8 @@ globalThis.__CORE_MEM_INFO =
     },
     slotsStart: CARRIER_SLOTS,
     slotsCap: CARRIER_CAP,
+    carrierAutoGrowth: false, // v0.4.8: deliberately never grow on a failed candidate
+    caution: "estimatedBytes is a rough allocation model, not measured PS4 RAM",
 
     drainCount: DRAIN_COUNT,
     drainSize: DRAIN_SIZE,
@@ -518,21 +520,10 @@ function giveUp(reason) {
     );
 }
 
-function failed() {
-  if (ceilingReached()) {
-    giveUp("attempt-ceiling");
-    return;
-  }
-  emit("AUTO-RETRY-AFTER-FAILURE", `attempt=${attemptNumber}`);
-  stopped = false;
-  retryScheduled = false;
-  setTimeout(() => {
-    try {
-      history.replaceState(null, "");
-    } catch {}
-    attemptNumber++;
-    startAttempt();
-  }, AUTO_RETRY_DELAY_MS);
+// v0.4.8: a generic failure is never authorization to retry an
+// unknown/mutated candidate. Only scheduleSafeRetry may retry.
+function failed(reason) {
+  giveUp(reason || "UNSAFE-OR-UNKNOWN-FAILURE");
 }
 
 function releaseAttemptAllocations() {
@@ -571,62 +562,39 @@ function releaseAttemptAllocations() {
 
 function scheduleSafeRetry(reason) {
   if (retryScheduled || stopped) return;
-  const candidateStateSafe =
-    !candidateEverReturned || (zeroHeaderMiss && !candidateMutationStarted);
-
-  if (
-    !retrySafe ||
-    !candidateStateSafe ||
-    candidateMutationStarted ||
-    !attemptPersisted
-  ) {
-    emit(
-      "AUTO-RETRY-NOT-SCHEDULED",
-      `reason=${reason}` +
-        `-safe=${retrySafe}` +
-        `-candidate-seen=${candidateEverReturned}` +
-        `-candidate-mutated=${candidateMutationStarted}` +
-        `-candidate-state-safe=${candidateStateSafe}` +
-        `-attempt-persisted=${attemptPersisted}`,
-    );
-    failed();
+  // A returned addrof *candidate* is not inherently a mutated candidate.
+  // Retry a validation miss only before ANY candidate mutation. Never
+  // retry coverage rejection: copiedLength is stable within this page.
+  const benign = reason === "addrof-validation" ||
+    reason === "addrof-no-result" || reason === "addrof-threw" ||
+    reason === "setup-threw" || reason === "normal-clone-miss" ||
+    reason === "zero-header-miss" || reason === "composition-length-mismatch" ||
+    reason === "placement-throw";
+  const candidateStateSafe = !candidateMutationStarted && benign &&
+    (!candidateEverReturned || reason === "addrof-validation" || zeroHeaderMiss);
+  if (!retrySafe || !candidateStateSafe || !attemptPersisted) {
+    emit("AUTO-RETRY-NOT-SCHEDULED", `reason=${reason}` +
+      `-safe=${retrySafe}-candidate-seen=${candidateEverReturned}` +
+      `-candidate-mutated=${candidateMutationStarted}` +
+      `-attempt-persisted=${attemptPersisted}`);
+    giveUp("RETRY-SAFETY-GATE");
     return;
   }
-  if (ceilingReached()) {
-    giveUp("attempt-ceiling");
-    return;
-  }
-
+  if (ceilingReached()) { giveUp("attempt-ceiling"); return; }
   retryScheduled = true;
   const nextAttempt = attemptNumber + 1;
-  emit("AUTO-RETRY-SCHEDULED", `reason=${reason}-next-attempt=${nextAttempt}`);
+  emit("MOCHI-BOUNDED-RETRY", `reason=${reason}-next=${nextAttempt}-max=${attemptCeiling}` +
+    "-page-reload=false-carrier-growth=false");
   releaseAttemptAllocations();
-  setTimeout(
-    () => {
-      const candidateStillSafe =
-        !candidateEverReturned || (zeroHeaderMiss && !candidateMutationStarted);
-      if (
-        !retrySafe ||
-        !candidateStillSafe ||
-        candidateMutationStarted ||
-        stopped
-      ) {
-        emit(
-          "AUTO-RETRY-CANCELLED",
-          `reason=${reason}` +
-            `-retry-safe=${retrySafe}` +
-            `-candidate-safe=${candidateStillSafe}` +
-            `-candidate-mutated=${candidateMutationStarted}`,
-        );
-        failed();
-        return;
-      }
-
-      attemptNumber = nextAttempt;
-      startAttempt();
-    },
-    Math.max(AUTO_RETRY_DELAY_MS, 750),
-  );
+  setTimeout(() => {
+    if (stopped || candidateMutationStarted || !retrySafe) {
+      emit("AUTO-RETRY-CANCELLED", "safety-gate-changed");
+      giveUp("RETRY-CANCELLED");
+      return;
+    }
+    attemptNumber = nextAttempt;
+    startAttempt();
+  }, 1000);
 }
 
 function finishEarlySafeAttempt(tag, extra, reason) {
@@ -1382,8 +1350,18 @@ function beginComposition() {
   );
 
   if (!(repeated && distinct && plausible && sourceCovered)) {
-    if (!sourceCovered && growCarrier(minimumSlots))
-      emit("TRAEGER-WACHSEN", `slots=${CARRIER_SLOTS}-bytes=${CARRIER_BYTES}`);
+    // Mochi v0.4.8: A carrier-range failure is not evidence that the
+    // leaked pointer is valid. Do not expand the heap or retry an
+    // uncovered candidate, especially after an observed PS4 shutdown.
+    if (!sourceCovered) {
+      emit("MOCHI-COVERAGE-REJECT", `needed_bytes=${requiredSourceBytes}` +
+        `-available_bytes=${CARRIER_BYTES}` +
+        `-minimum_slots=${minimumSlots}` +
+        `-carrier_slots=${CARRIER_SLOTS}` +
+        `-action=STOP_NO_GROWTH_NO_RETRY`);
+      giveUp("COVERAGE-REJECT");
+      return;
+    }
     finishEarlySafeAttempt(
       "ADDROF-FAIL",
       `repeat=${repeated}-distinct=${distinct}` +
