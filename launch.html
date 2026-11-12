@@ -6,16 +6,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#151329">
   <meta name="referrer" content="same-origin">
-  <title>Mochi · v0.4.4-R Userland Diagnostics</title>
-  <link rel="stylesheet" href="./assets/mochi-launch.css?v=044r">
-  <link rel="stylesheet" href="./assets/mochi-diagnostics.css?v=044r">
+  <title>Mochi · v0.4.4-R2 Userland Diagnostics</title>
+  <link rel="stylesheet" href="./assets/mochi-launch.css?v=044r2">
+  <link rel="stylesheet" href="./assets/mochi-diagnostics.css?v=044r2">
 </head>
 <body class="launch-page">
 <div class="haze h1"></div><div class="haze h2"></div>
 <div class="shell">
   <header class="masthead">
     <div class="brand"><span class="brand-mark"><img src="./assets/mochi-icon.png" alt=""></span><span>mochi<span class="brand-dot">.</span><small>ACTIVE EXECUTION · FW 14.02 TARGET</small></span></div>
-    <div class="head-right"><span class="chip chip-fw" id="active-mode">PREPARING</span><span class="chip">v0.4.4-R</span></div>
+    <div class="head-right"><span class="chip chip-fw" id="active-mode">PREPARING</span><span class="chip">v0.4.4-R2</span></div>
   </header>
   <main class="run-main">
     <div class="run-head">
@@ -42,12 +42,12 @@
     </div>
     <div class="run-footnote"><span>Engine output may stop if the WebProcess crashes. No local file or jailbreak is needed to display logs.</span><span id="m-final">NO KERNEL SUCCESS VERIFIED</span></div>
   </main>
-  <footer><span>MOCHI · AFTERGLOW EXECUTION</span><span>Kernel route disabled · original source preserved for offline research</span></footer>
+  <footer><span>MOCHI · USERLAND VALIDATION</span><span>Kernel route disabled · original source preserved for offline research</span></footer>
 </div>
-<script src="./assets/mochi-monitor.js?v=044r"></script>
-<script src="./assets/mochi-capture.js?v=044r"></script>
+<script src="./assets/mochi-monitor.js?v=044r2"></script>
+<script src="./assets/mochi-capture.js?v=044r2"></script>
 <script type="module">
-import("./assets/baseline-044r/mochi-engine.js?v=044r").catch(function (error) {
+import("./assets/baseline-044r2/mochi-engine.js?v=044r2").catch(function (error) {
   var detail = error && (error.stack || error.message) ? (error.stack || error.message) : String(error);
   var output = document.getElementById("out");
   var status = document.getElementById("state");

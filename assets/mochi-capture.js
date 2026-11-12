@@ -8,6 +8,13 @@
   var count = 0;
   var runId = "MOCHI-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 65536).toString(16);
   var active = false;
+  var flushQueued = false;
+  var urgent = /^(?:MOCHI-STEP|MOCHI-STOP|MOCHI-TERMINAL|MOCHI-RESTORE|MOCHI-NATIVE|NATIVE-ONLY-PASS|READ-PRIMITIVE-PASS|HOST-VALIDATION|JB-THREW|PRIMITIVE-ONLY|MOCHI-IMPORT-FAIL)$/;
+  function requestFlush() {
+    if (flushQueued || !enabled) return;
+    flushQueued = true;
+    setTimeout(function () { flushQueued=false; batch(); }, 0);
+  }
   function status(s) { if (state) state.textContent = s; }
   function batch() {
     if (!enabled || active || !pending.length) return;
@@ -22,13 +29,14 @@
       // Keep already recorded lines until the receiver recovers, bounded to protect the console.
       pending = current.concat(pending).slice(-1000);
       status("Collector unreachable · console still records");
-    }).then(function(){active=false;});
+    }).then(function(){ active=false; });
   }
   window.MochiCapture = {
     push: function (tag, detail) {
       if (!collectPending) return;
       pending.push({t:Date.now(),tag:String(tag),detail:String(detail).slice(0,2048)});
       if (pending.length > 1000) pending.splice(0, pending.length - 1000);
+      if (urgent.test(String(tag))) requestFlush();
     },
     id:runId
   };
@@ -40,6 +48,7 @@
     if (!j || j.service !== "mochi-capture-v1") {status("Display-only · no collector");return;}
     enabled = true;
     status("PC CAPTURE ON · " + runId);
+    requestFlush();
     window.setInterval(batch, 700);
   }).catch(function () {status("Display-only · no collector");});
 }());

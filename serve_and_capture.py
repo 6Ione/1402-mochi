@@ -1,6 +1,7 @@
 # Python | serve_and_capture.py | CPython 3.10+ | LAN HTTP server and on-disk Mochi stage log collector
 import argparse
 import json
+import os
 import re
 import time
 from datetime import datetime, timezone
@@ -70,6 +71,8 @@ class MochiHandler(SimpleHTTPRequestHandler):
                 with path.open("a", encoding="utf-8") as f:
                     for item in safe:
                         f.write(item + "\n")
+                    f.flush()
+                    os.fsync(f.fileno())
             print(f"[{run_id}] recorded {len(safe)} events -> {path.name}", flush=True)
             self.send_response(204)
             self.send_header("Content-Length", "0")

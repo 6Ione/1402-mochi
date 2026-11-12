@@ -45,6 +45,7 @@
     if (/HOST-VALIDATION\s+FAIL/.test(t)) set("m-state","HOST VALIDATION FAILED","bad");
     if (/HOST-VALIDATION\s+PASS/.test(t)) set("m-state","Host checks passed; native/kernel not tested","good");
     if (!stop && !/AG-RUN-RETURNED-FAILURE/.test(t) && /MOCHI-STEP\s+03 native-readonly-call pass/.test(t)) set("mochi-stop","Read-only native calls passed; kernel unverified","good");
+    if (/MOCHI-RESTORE\s+function-pointer=MISMATCH/.test(t)) set("mochi-stop","Native function pointer restoration mismatch","bad");
     if (/MOCHI-IMPORT-FAIL/.test(t)) set("mochi-stop","JavaScript module import failed","bad");
     set("m-afterglow","Not tested · disabled");
     set("m-final","KERNEL: NOT TESTED · ROUTE DISABLED");
