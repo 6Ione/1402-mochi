@@ -2092,12 +2092,19 @@ async function attempt(ctx, opts) {
             + (delta !== 0 ? (" (shifted " + delta + ")") : " (same)"));
         K.swap_rbp = realRVA;
       } else {
+<<<<<<< HEAD
         say("AG-STOP code=KERNEL-PIVOT-GADGET-NOT-FOUND detail=4e95c3-missing; no-fallback");
         return false;
       }
     } else {
       say("AG-STOP code=KERNEL-PIVOT-SCAN-FAILED detail=unreliable-read; no-fallback");
       return false;
+=======
+        say("[1b] swap_rbp 4e95c3 not in window -- using original, expect crash");
+      }
+    } else {
+      say("[1b] scan shot missed -- using original K.swap_rbp");
+>>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
     }
   }
 

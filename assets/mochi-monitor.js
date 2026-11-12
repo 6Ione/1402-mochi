@@ -3,8 +3,12 @@
   "use strict";
   function id(x) { return document.getElementById(x); }
   var params = window.location.search || "";
+<<<<<<< HEAD
   var mode = /(?:\?|&)stop=native(?:&|$)/.test(params) ? "NATIVE-ONLY CHECK"
     : /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
+=======
+  var mode = /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
+>>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
     : /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
     : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY"
     : /(?:\?|&)afterglow=probe(?:&|$)/.test(params) ? "AFTERGLOW PREFLIGHT"
@@ -28,11 +32,15 @@
       set("mochi-boundary",(b>a ? kstep[1] : step[1]).slice(0,140));
     }
     var stop=last(t,/AG-STOP\s+([^\n]+)/g) || last(t,/MOCHI-STOP\s+([^\n]+)/g);
+<<<<<<< HEAD
     if (/MOCHI-STOP\s+code=NATIVE-ONLY-PASS/.test(t) && !/NATIVE-RESTORE-ERROR/.test(t)) {
       set("mochi-stop", "Native read-only calls complete; stopped before kernel", "good");
       set("m-afterglow", "NOT ENTERED", "caution-text");
       set("m-state", "NATIVE ONLY — FINISHED", "good");
     } else if(stop) {
+=======
+    if(stop) {
+>>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
       set("mochi-stop", stop[1].slice(0,155), "bad");
       set("m-afterglow","Stopped · see reason","bad");
       set("m-state","STOP REASON RECORDED","bad");
