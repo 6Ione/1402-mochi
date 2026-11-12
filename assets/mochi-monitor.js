@@ -3,11 +3,9 @@
   "use strict";
   function id(x) { return document.getElementById(x); }
   var params = window.location.search || "";
-  var mode = /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
-    : /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
+  var mode = /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
     : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY"
-    : /(?:\?|&)afterglow=probe(?:&|$)/.test(params) ? "AFTERGLOW PREFLIGHT"
-    : /(?:\?|&)afterglow=run(?:&|$)/.test(params) ? "KERNEL EXPERIMENT" : "ENGINE TRACE";
+    : /(?:\?|&)stop=native(?:&|$)/.test(params) ? "NATIVE VALIDATION" : "DISABLED ROUTE";
   if (id("active-mode")) id("active-mode").textContent = mode;
   var output = id("out"), previous = "";
   function set(name, value, klass) { var e=id(name);if(e){e.textContent=value;if(klass)e.className=klass;} }
@@ -40,11 +38,16 @@
     } else if(/AG-PREFLIGHT-PASS/.test(t)) {
       set("m-afterglow","Preflight PASS only","caution-text");
     }
+    if (/NATIVE-ONLY-PASS/.test(t)) {
+      set("mochi-stop", "Read-only getpid/getuid passed; kernel not tested", "good");
+      set("m-state", "NATIVE USERLAND PASS", "good");
+    }
     if (/HOST-VALIDATION\s+FAIL/.test(t)) set("m-state","HOST VALIDATION FAILED","bad");
     if (/HOST-VALIDATION\s+PASS/.test(t)) set("m-state","Host checks passed; native/kernel not tested","good");
     if (!stop && !/AG-RUN-RETURNED-FAILURE/.test(t) && /MOCHI-STEP\s+03 native-readonly-call pass/.test(t)) set("mochi-stop","Read-only native calls passed; kernel unverified","good");
     if (/MOCHI-IMPORT-FAIL/.test(t)) set("mochi-stop","JavaScript module import failed","bad");
-    set("m-final","KERNEL STATUS: NOT INDEPENDENTLY VERIFIED");
+    set("m-afterglow","Not tested · disabled");
+    set("m-final","KERNEL: NOT TESTED · ROUTE DISABLED");
   }
   var updateScheduled = false;
   if (window.MutationObserver && output) new MutationObserver(function () {
