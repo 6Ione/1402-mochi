@@ -10,11 +10,7 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
-<<<<<<< HEAD
 const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native";
-=======
-const HOST_AUDIT_MODE = params.get("stop") === "host";
->>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
 const MOCHI_DIAG = params.get("diag") === "full";
 
 /* The retry notice. Two things lead here: the chain throws, or it stalls
@@ -422,11 +418,7 @@ let allDone = false,
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
     if (MOCHI_DIAG) {
-<<<<<<< HEAD
       mark("MOCHI-RUN", "v0.4.5 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
-=======
-      mark("MOCHI-RUN", "v0.4.4 diag=full firmware-user-agent=" + fwKey + " source=afterglow-raw13 baseline=14.00/13.52 inherited");
->>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
       mark("MOCHI-STEP", "01 primitive start; native-call=no; kernel=no");
     }
 
@@ -516,11 +508,7 @@ let allDone = false,
 
     // afterglow brings its own kernel stage, so this run does not need the
     // host's kernel table at all.
-<<<<<<< HEAD
     const OWN_KERNEL_STAGE = !!params.get("afterglow") || HOST_VALIDATE || params.get("stop") === "native";
-=======
-    const OWN_KERNEL_STAGE = !!params.get("afterglow") || HOST_VALIDATE;
->>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
     const NEED_K = OWN_KERNEL_STAGE ? [] : [
       "k_idt_rsvd",
       "k_oid_kern_file",
@@ -1016,7 +1004,6 @@ let allDone = false,
         return;
       }
       mark("MOCHI-STEP", "03 native-readonly-call pass; kernel-not-proven");
-<<<<<<< HEAD
       if (params.get("stop") === "native") {
         mark("MOCHI-STOP", "code=NATIVE-ONLY-PASS; kernel-trigger=NOT-REACHED; payload=NOT-LOADED");
         try { if (mainArmed && mainMf && mainOrig && p) { p.write8(mainMf, mainOrig); mainArmed = false; } } catch (restoreError) {
@@ -1027,8 +1014,6 @@ let allDone = false,
         finishUI(true);
         return;
       }
-=======
->>>>>>> f9b9cfdb9a2b5b3d16ee442ccf14f5bace9ea177
     }
     async function relaunchPayload() {
       let blob = null;
