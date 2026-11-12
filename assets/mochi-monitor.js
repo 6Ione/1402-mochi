@@ -4,9 +4,9 @@
   function id(x) { return document.getElementById(x); }
   var params = window.location.search || "";
   var mode = /(?:\?|&)stop=native(?:&|$)/.test(params) ? "NATIVE-ONLY CHECK"
-    : /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
     : /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
     : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY"
+    : /(?:\?|&)diag=full(?:&|$)/.test(params) ? "UNIFIED DEEP TRACE"
     : /(?:\?|&)afterglow=probe(?:&|$)/.test(params) ? "AFTERGLOW PREFLIGHT"
     : /(?:\?|&)afterglow=run(?:&|$)/.test(params) ? "KERNEL EXPERIMENT" : "ENGINE TRACE";
   if (id("active-mode")) id("active-mode").textContent = mode;
