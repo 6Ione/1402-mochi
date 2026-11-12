@@ -33,7 +33,7 @@
     A way to call native code is NOT needed.
 */
 
-import { int64 } from "./int64.js";
+import { int64 } from "./int64.js?v=0411";
 
 const S = {
   read: 3, open: 5, close: 6, ioctl: 54, mprotect: 74, socket: 97, setsockopt: 105,

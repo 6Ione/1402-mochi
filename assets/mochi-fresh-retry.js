@@ -4,8 +4,8 @@
   var query = window.location.search || "";
   if (!/(?:\?|&)fresh=1(?:&|$)/.test(query) ||
       !/(?:\?|&)stop=(?:host|primitive)(?:&|$)/.test(query)) return;
-  var countKey = "mochi049-fresh-reloads";
-  var traceKey = "mochi049-last-trace";
+  var countKey = "mochi0411-fresh-reloads";
+  var traceKey = "mochi0411-last-trace";
   var count = 0, storageOK = true;
   try {
     count = Number(sessionStorage.getItem(countKey) || 0);
@@ -54,7 +54,9 @@
     if (/MOCHI-IMPORT-FAIL|MOCHI-STOP\s+code=IMPORT-FAIL/.test(t)) return false;
     // Do not reload on JavaScript unknown exceptions, native bridge problems or memory errors.
     if (/RangeError|out of memory|memory error|allocation failed/i.test(t)) return false;
-    return /CORE-GIVE-UP\s+reason=(?:COVERAGE-REJECT|attempt-ceiling|RETRY-SAFETY-GATE)/.test(t);
+    if (/CORE-GIVE-UP\s+\[\d+\]\s+reason=COVERAGE-REJECT/.test(t) ||
+        /MOCHI-COVERAGE-REJECT/.test(t)) return false;
+    return /CORE-GIVE-UP\s+\[\d+\]\s+reason=(?:attempt-ceiling|RETRY-SAFETY-GATE)/.test(t);
   }
   function poll() {
     if (cancelled || started || !output) return;

@@ -1,3 +1,5 @@
+// JavaScript | assets/core.js | PS4 WebKit | v0.4.11 bounded memory-aware diagnostics
+const MOCHI_CORE_BUILD = "v0.4.11";
 let DRAIN_COUNT = 512;
 const AUTO_RETRY_DELAY_MS = 50;
 
@@ -195,6 +197,7 @@ const CORE_MEM_WITHOUT_CARRIER =
 
 globalThis.__CORE_MEM_INFO =
   Object.freeze({
+    build: MOCHI_CORE_BUILD,
     hx1400: HX1400_LIGHT_CORE,
     memLevel: HX_MEM_LEVEL,
     profile: HX_MEM ? HX_MEM.name : null,
@@ -209,6 +212,7 @@ globalThis.__CORE_MEM_INFO =
     },
     slotsStart: CARRIER_SLOTS,
     slotsCap: CARRIER_CAP,
+    capBytes: Math.min(CARRIER_CAP,CARRIER_MAX) * 8,
     carrierAutoGrowth: false, // v0.4.8: deliberately never grow on a failed candidate
     caution: "estimatedBytes is a rough allocation model, not measured PS4 RAM",
 
@@ -509,15 +513,20 @@ function ceilingReached() {
 
 function giveUp(reason) {
   stopped = true;
-  emit("CORE-GIVE-UP", `reason=${reason}-attempts=${attemptNumber}`);
+  emit("CORE-GIVE-UP", `reason=${reason} attempts=${attemptNumber} max=${attemptCeiling}` +
+    ` candidate_mutated=${candidateMutationStarted} carrier_growth=false`);
   const reject = settleReject;
   settleResolve = null;
   settleReject = null;
   running = false;
-  if (reject !== null)
-    reject(
-      new Error(`core: gave up after ${attemptNumber} attempts (${reason})`),
-    );
+  if (reject !== null) {
+    const err = new Error(`core: gave up after ${attemptNumber} attempts (${reason})`);
+    err.code = "MOCHI_CORE_GIVEUP";
+    err.reason = reason;
+    err.attempts = attemptNumber;
+    err.maxAttempts = attemptCeiling;
+    reject(err);
+  }
 }
 
 // v0.4.8: a generic failure is never authorization to retry an
@@ -684,11 +693,11 @@ function startAttempt() {
     attemptPersisted =
       sessionStorage.getItem(attemptKey) === String(attemptNumber);
   } catch {}
-  emit(
-    "ATTEMPT-START",
-    `attempt-persisted=${attemptPersisted}` +
-      `-capture-ms=${CAPTURE_DELAY_MS}-compose-ms=${COMPOSE_DELAY_MS}`,
-  );
+  emit("CORE-PROFILE", `build=${MOCHI_CORE_BUILD} profile=${HX_MEM ? HX_MEM.name : "default"}` +
+    ` mem=${HX_MEM_LEVEL} slots=${CARRIER_SLOTS} cap_slots=${Math.min(CARRIER_CAP,CARRIER_MAX)}` +
+    ` estimated_bytes=${CORE_MEM_WITHOUT_CARRIER + CARRIER_BYTES} estimate_not_measured=true growth=false`);
+  emit("ATTEMPT-START", `max=${attemptCeiling} persisted=${attemptPersisted}` +
+      ` capture_ms=${CAPTURE_DELAY_MS} compose_ms=${COMPOSE_DELAY_MS}`);
   try {
     buildAndStoreGraph();
     prepareAddrof();
@@ -1355,10 +1364,11 @@ function beginComposition() {
     // uncovered candidate, especially after an observed PS4 shutdown.
     if (!sourceCovered) {
       emit("MOCHI-COVERAGE-REJECT", `needed_bytes=${requiredSourceBytes}` +
-        `-available_bytes=${CARRIER_BYTES}` +
-        `-minimum_slots=${minimumSlots}` +
-        `-carrier_slots=${CARRIER_SLOTS}` +
-        `-action=STOP_NO_GROWTH_NO_RETRY`);
+        ` available_bytes=${CARRIER_BYTES}` +
+        ` minimum_slots=${minimumSlots}` +
+        ` carrier_slots=${CARRIER_SLOTS}` +
+        ` repeated=${repeated} distinct=${distinct} plausible=${plausible}` +
+        ` action=STOP_NO_GROWTH_NO_RETRY`);
       giveUp("COVERAGE-REJECT");
       return;
     }
