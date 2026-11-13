@@ -1,0 +1,12 @@
+{
+  "name": "Mochi Stage 5 APM event lifecycle",
+  "tested_on_ps4": false,
+  "stage4_hardware_result": "open-and-close reachable (user screenshot)",
+  "protected_sha256": {
+    "core.js": "cfd9f607254913958d506627e35b1a72f7337fc39f08d3f560767e7e47797f87",
+    "mem.js": "e58704779bc896cf25c371181f7986d368918d4198a7f30d8d8a947b5fafc08b"
+  },
+  "diagnostic": "single EVFILT_READ EV_ADD -> EV_DELETE; no polling",
+  "kernel_exploit": false,
+  "kernel_read_write": false
+}

