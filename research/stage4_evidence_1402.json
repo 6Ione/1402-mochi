@@ -1,0 +1,431 @@
+{
+  "format": "mochi-stage4-apm-proof-gates-v1",
+  "input": {
+    "sha256": "a1522676dabb9cb51a1f94ebced0e725b1d605202a87f6c07aad2625c169a704",
+    "matches_examined_kernel": true,
+    "bytes": 28468720,
+    "declared_load_segments": [
+      {
+        "file_offset": 0,
+        "virtual_address": 18446744071939620864,
+        "file_size": 13625760,
+        "memory_size": 13625760,
+        "flags": 5
+      },
+      {
+        "file_offset": 13762560,
+        "virtual_address": 18446744071961772032,
+        "file_size": 6317712,
+        "memory_size": 20007664,
+        "flags": 6
+      }
+    ]
+  },
+  "instruction_checks": {
+    "passed": 48,
+    "total": 48,
+    "all_passed": true
+  },
+  "checks": [
+    {
+      "name": "open_alloc_104",
+      "rva": "0x144b94",
+      "pass": true,
+      "expected": "bf68000000",
+      "actual": "bf68000000",
+      "meaning": "open requests 104 bytes"
+    },
+    {
+      "name": "open_event_list_addr",
+      "rva": "0x144ba6",
+      "pass": true,
+      "expected": "488d7820",
+      "actual": "488d7820",
+      "meaning": "event-list structure starts at object+0x20"
+    },
+    {
+      "name": "open_event_zero_size",
+      "rva": "0x144baa",
+      "pass": true,
+      "expected": "be48000000",
+      "actual": "be48000000",
+      "meaning": "open zeroes 0x48 bytes in event-list area"
+    },
+    {
+      "name": "open_event_zero_call",
+      "rva": "0x144bc1",
+      "pass": true,
+      "expected": "e8ca8e1700",
+      "actual": "e8ca8e1700",
+      "meaning": "open calls the observed zeroing helper"
+    },
+    {
+      "name": "open_apm_mutex_ref",
+      "rva": "0x144bc6",
+      "pass": true,
+      "expected": "4c8d35cbaa0802",
+      "actual": "4c8d35cbaa0802",
+      "meaning": "open references APM mutex address"
+    },
+    {
+      "name": "open_local_list_addr",
+      "rva": "0x144bcd",
+      "pass": true,
+      "expected": "488d7b30",
+      "actual": "488d7b30",
+      "meaning": "open sets local-list address at object+0x30"
+    },
+    {
+      "name": "open_local_list_init",
+      "rva": "0x144bd4",
+      "pass": true,
+      "expected": "e8f704faff",
+      "actual": "e8f704faff",
+      "meaning": "open initializes local list"
+    },
+    {
+      "name": "filter_lock_ref",
+      "rva": "0x14524e",
+      "pass": true,
+      "expected": "488d3d43a40802",
+      "actual": "488d3d43a40802",
+      "meaning": "filter references the same APM mutex"
+    },
+    {
+      "name": "filter_file_private",
+      "rva": "0x145270",
+      "pass": true,
+      "expected": "498bb424a8000000",
+      "actual": "498bb424a8000000",
+      "meaning": "filter reads file-associated object"
+    },
+    {
+      "name": "filter_knlist_arg",
+      "rva": "0x14528d",
+      "pass": true,
+      "expected": "4883c620",
+      "actual": "4883c620",
+      "meaning": "filter passes object+0x20 to event registration"
+    },
+    {
+      "name": "filter_knlist_add",
+      "rva": "0x145294",
+      "pass": true,
+      "expected": "e8c7830c00",
+      "actual": "e8c7830c00",
+      "meaning": "filter calls event-list add"
+    },
+    {
+      "name": "filter_unlock",
+      "rva": "0x1452ae",
+      "pass": true,
+      "expected": "e89d402300",
+      "actual": "e89d402300",
+      "meaning": "filter releases APM lock"
+    },
+    {
+      "name": "attach_lock_ref",
+      "rva": "0x1452cb",
+      "pass": true,
+      "expected": "4c8d3dc6a30802",
+      "actual": "4c8d3dc6a30802",
+      "meaning": "attach references APM mutex"
+    },
+    {
+      "name": "attach_stores_object",
+      "rva": "0x145304",
+      "pass": true,
+      "expected": "48897b70",
+      "actual": "48897b70",
+      "meaning": "attach saves object in registration+0x70"
+    },
+    {
+      "name": "attach_stores_ops",
+      "rva": "0x14530c",
+      "pass": true,
+      "expected": "48894368",
+      "actual": "48894368",
+      "meaning": "attach saves ops-table pointer in registration+0x68"
+    },
+    {
+      "name": "attach_local_list_add",
+      "rva": "0x145310",
+      "pass": true,
+      "expected": "e8eb16faff",
+      "actual": "e8eb16faff",
+      "meaning": "attach inserts registration in local list"
+    },
+    {
+      "name": "detach_lock_ref",
+      "rva": "0x14534a",
+      "pass": true,
+      "expected": "4c8d3547a30802",
+      "actual": "4c8d3547a30802",
+      "meaning": "detach references APM mutex"
+    },
+    {
+      "name": "detach_loads_object",
+      "rva": "0x14536d",
+      "pass": true,
+      "expected": "488b7b70",
+      "actual": "488b7b70",
+      "meaning": "detach accesses registration+0x70"
+    },
+    {
+      "name": "detach_unlink",
+      "rva": "0x14537a",
+      "pass": true,
+      "expected": "e80117faff",
+      "actual": "e80117faff",
+      "meaning": "detach calls local-list unlink"
+    },
+    {
+      "name": "callback_lock_ref",
+      "rva": "0x1453aa",
+      "pass": true,
+      "expected": "4c8d35e7a20802",
+      "actual": "4c8d35e7a20802",
+      "meaning": "callback references APM mutex"
+    },
+    {
+      "name": "callback_loads_object",
+      "rva": "0x1453cd",
+      "pass": true,
+      "expected": "488b4370",
+      "actual": "488b4370",
+      "meaning": "callback accesses registration+0x70"
+    },
+    {
+      "name": "callback_deref",
+      "rva": "0x1453de",
+      "pass": true,
+      "expected": "488b4018",
+      "actual": "488b4018",
+      "meaning": "callback dereferences object-associated state"
+    },
+    {
+      "name": "callback_unlock",
+      "rva": "0x1453ee",
+      "pass": true,
+      "expected": "e85d3f2300",
+      "actual": "e85d3f2300",
+      "meaning": "callback releases APM mutex"
+    },
+    {
+      "name": "close_lock_ref",
+      "rva": "0x144c92",
+      "pass": true,
+      "expected": "488d3dffa90802",
+      "actual": "488d3dffa90802",
+      "meaning": "close references APM mutex"
+    },
+    {
+      "name": "close_event_list_arg",
+      "rva": "0x144ce6",
+      "pass": true,
+      "expected": "488d7b20",
+      "actual": "488d7b20",
+      "meaning": "close passes object+0x20 to cleanup"
+    },
+    {
+      "name": "close_event_list_cleanup",
+      "rva": "0x144cea",
+      "pass": true,
+      "expected": "e8e1870c00",
+      "actual": "e8e1870c00",
+      "meaning": "close invokes event-list cleanup"
+    },
+    {
+      "name": "close_local_reset",
+      "rva": "0x144cf3",
+      "pass": true,
+      "expected": "e8981ffaff",
+      "actual": "e8981ffaff",
+      "meaning": "close invokes distinct local-list reset"
+    },
+    {
+      "name": "close_unlock",
+      "rva": "0x144d0d",
+      "pass": true,
+      "expected": "e83e462300",
+      "actual": "e83e462300",
+      "meaning": "close releases APM mutex"
+    },
+    {
+      "name": "close_free",
+      "rva": "0x144d1c",
+      "pass": true,
+      "expected": "e8bf49ecff",
+      "actual": "e8bf49ecff",
+      "meaning": "close invokes object release after unlock"
+    },
+    {
+      "name": "knlist_cleanup_lock_load",
+      "rva": "0x20d4f4",
+      "pass": true,
+      "expected": "488b7f40",
+      "actual": "488b7f40",
+      "meaning": "cleanup reads event-list lock at +0x40"
+    },
+    {
+      "name": "knlist_cleanup_lock_null",
+      "rva": "0x20d4fb",
+      "pass": true,
+      "expected": "4885ff",
+      "actual": "4885ff",
+      "meaning": "cleanup checks for uninitialized lock"
+    },
+    {
+      "name": "knlist_cleanup_null_branch",
+      "rva": "0x20d4fe",
+      "pass": true,
+      "expected": "0f84f5000000",
+      "actual": "0f84f5000000",
+      "meaning": "cleanup has no-lock return branch"
+    },
+    {
+      "name": "knlist_cleanup_helper",
+      "rva": "0x20d5ad",
+      "pass": true,
+      "expected": "e89eab2000",
+      "actual": "e89eab2000",
+      "meaning": "cleanup invokes per-entry handling"
+    },
+    {
+      "name": "knlist_add_lock_test",
+      "rva": "0x20d6fb",
+      "pass": true,
+      "expected": "49837f4000",
+      "actual": "49837f4000",
+      "meaning": "event registration tests list lock pointer"
+    },
+    {
+      "name": "knlist_add_lock_store",
+      "rva": "0x20d702",
+      "pass": true,
+      "expected": "4d897740",
+      "actual": "4d897740",
+      "meaning": "event registration stores list lock pointer"
+    },
+    {
+      "name": "local_unlink_membership_clear",
+      "rva": "0xe6ad0",
+      "pass": true,
+      "expected": "48c7431000000000",
+      "actual": "48c7431000000000",
+      "meaning": "local unlink clears node membership field"
+    },
+    {
+      "name": "knote_callback_count",
+      "rva": "0x418162",
+      "pass": true,
+      "expected": "837b0800",
+      "actual": "837b0800",
+      "meaning": "per-entry callback count is conditional"
+    },
+    {
+      "name": "all_apm_paths_reference_same_lock",
+      "pass": true,
+      "references": {
+        "open": "0x21cf698",
+        "filter": "0x21cf698",
+        "attach": "0x21cf698",
+        "detach": "0x21cf698",
+        "callback": "0x21cf698",
+        "close": "0x21cf698"
+      },
+      "meaning": "static LEA targets only; runtime synchronization and quiescence unproven"
+    },
+    {
+      "name": "call_event_list_zero",
+      "pass": true,
+      "site": "0x144bc1",
+      "expected_target": "0x2bda90",
+      "actual_target": "0x2bda90"
+    },
+    {
+      "name": "call_local_list_init",
+      "pass": true,
+      "site": "0x144bd4",
+      "expected_target": "0xe50d0",
+      "actual_target": "0xe50d0"
+    },
+    {
+      "name": "call_filter_register",
+      "pass": true,
+      "site": "0x145294",
+      "expected_target": "0x20d660",
+      "actual_target": "0x20d660"
+    },
+    {
+      "name": "call_attach_local_list_add",
+      "pass": true,
+      "site": "0x145310",
+      "expected_target": "0xe6a00",
+      "actual_target": "0xe6a00"
+    },
+    {
+      "name": "call_detach_unlink",
+      "pass": true,
+      "site": "0x14537a",
+      "expected_target": "0xe6a80",
+      "actual_target": "0xe6a80"
+    },
+    {
+      "name": "call_close_knlist",
+      "pass": true,
+      "site": "0x144cea",
+      "expected_target": "0x20d4d0",
+      "actual_target": "0x20d4d0"
+    },
+    {
+      "name": "call_close_local_reset",
+      "pass": true,
+      "site": "0x144cf3",
+      "expected_target": "0xe6c90",
+      "actual_target": "0xe6c90"
+    },
+    {
+      "name": "call_close_free_call",
+      "pass": true,
+      "site": "0x144d1c",
+      "expected_target": "0x96e0",
+      "actual_target": "0x96e0"
+    },
+    {
+      "name": "call_knlist_per_entry",
+      "pass": true,
+      "site": "0x20d5ad",
+      "expected_target": "0x418150",
+      "actual_target": "0x418150"
+    },
+    {
+      "name": "event_ops_table_file_state",
+      "pass": true,
+      "state": "all-zero-in-file",
+      "rva": "0x1a3f510",
+      "meaning": "file representation is insufficient to bind runtime callbacks"
+    }
+  ],
+  "claims": {
+    "verified_against_supplied_ELF": "APM registration uses saved object references; callback and close use same apparent APM lock; close calls event-list cleanup before free",
+    "not_proven": [
+      "independent firmware provenance",
+      "callback quiescence after detach",
+      "dangling pointer after cleanup",
+      "kernel UAF",
+      "kernel read/write",
+      "kernel code execution",
+      "GoldHEN"
+    ],
+    "UAF_verdict": "UNRESOLVED",
+    "kernel_access": "NOT_DEMONSTRATED",
+    "exploit_decision": "NO-GO"
+  },
+  "questions_for_next_stage": [
+    "Identify the runtime event operations-table contents using authenticated evidence.",
+    "Establish whether event-list cleanup waits for all in-flight event callbacks.",
+    "Verify whether callback can be scheduled after cleanup and before release, or after release.",
+    "Compare relevant code with authenticated 14.00 image; do not assume offset inheritance."
+  ]
+}

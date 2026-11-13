@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#151329">
   <meta name="referrer" content="same-origin">
   <title>Mochi · v0.4.4-R3 Compatibility Evidence</title>
-  <link rel="stylesheet" href="./assets/mochi-launch.css?v=044r3stage5">
-  <link rel="stylesheet" href="./assets/mochi-diagnostics.css?v=044r3stage5">
+  <link rel="stylesheet" href="./assets/mochi-launch.css?v=044r3stage6">
+  <link rel="stylesheet" href="./assets/mochi-diagnostics.css?v=044r3stage6">
 </head>
 <body class="launch-page">
 <div class="haze h1"></div><div class="haze h2"></div>
@@ -19,7 +19,7 @@
   </header>
   <main class="run-main">
     <div class="run-head">
-      <div><div class="eyebrow"><span class="live-dot"></span> LIVE ENGINE OUTPUT</div><h1>Let's see what sticks<span class="brand-dot">.</span></h1><p>Research-only diagnostics. Optional single APM registration/removal; no racing, event polling, kernel memory operations, or payload execution.</p></div>
+      <div><div class="eyebrow"><span class="live-dot"></span> LIVE ENGINE OUTPUT</div><h1>Let's see what sticks<span class="brand-dot">.</span></h1><p>Research-only diagnostics. Read-only process privilege evidence or bounded APM event test. No kernel memory operations or payload execution.</p></div>
       <img class="run-mascot" src="./assets/mochi-icon.png" alt="Mochi mascot">
     </div>
     <div class="run-statbar">
@@ -44,10 +44,10 @@
   </main>
   <footer><span>MOCHI · USERLAND VALIDATION</span><span>Kernel route disabled · original source preserved for offline research</span></footer>
 </div>
-<script src="./assets/mochi-monitor.js?v=044r3stage5"></script>
-<script src="./assets/mochi-capture.js?v=044r3stage5"></script>
+<script src="./assets/mochi-monitor.js?v=044r3stage6"></script>
+<script src="./assets/mochi-capture.js?v=044r3stage6"></script>
 <script type="module">
-import("./assets/baseline-044r3/mochi-engine.js?v=044r3stage5apm1").catch(function (error) {
+import("./assets/baseline-044r3/mochi-engine.js?v=044r3stage6priv1").catch(function (error) {
   var detail = error && (error.stack || error.message) ? (error.stack || error.message) : String(error);
   var output = document.getElementById("out");
   var status = document.getElementById("state");

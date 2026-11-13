@@ -11,13 +11,13 @@ let passCount = 0,
   failCount = 0;
 let armedEver = false;
 const params = new URLSearchParams(location.search);
-const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native" || (params.get("stop") === "apm" || params.get("stop") === "apm-events");
+const HOST_AUDIT_MODE = params.get("stop") === "host" || params.get("stop") === "native" || params.get("stop") === "priv-evidence" || (params.get("stop") === "apm" || params.get("stop") === "apm-events");
 const MOCHI_DIAG = params.get("diag") === "full";
 const MOCHI_MODE = params.get("stop");
 // Explicit, non-kernel routes only. Unknown or legacy kernel URLs are refused
 // before the WebKit primitive is started. This package has no active Afterglow import.
 const MOCHI_ROUTE_ALLOWED = (
-  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native" || MOCHI_MODE === "apm" || MOCHI_MODE === "apm-events") &&
+  (MOCHI_MODE === "primitive" || MOCHI_MODE === "host" || MOCHI_MODE === "native" || MOCHI_MODE === "priv-evidence" || MOCHI_MODE === "apm" || MOCHI_MODE === "apm-events") &&
   !params.has("afterglow") && !params.has("kpstep") &&
   !params.has("payload") && !params.has("patch")
 );
@@ -311,6 +311,7 @@ const SYS = {
   kevent: 363,
   getpid: 20,
   getuid: 0x18,
+  geteuid: 25, // read-only effective user ID; Stage 6 only
   close: 6,
   socket: 97,
   socketpair: 0x87,
@@ -350,7 +351,7 @@ let allDone = false,
 (async function () {
   if (SENT_HOME) return;
   if (!MOCHI_ROUTE_ALLOWED) {
-    mark("MOCHI-STOP", "code=ROUTE-DISABLED userland-only; valid-stop=primitive|host|native|apm; no-kernel-launch");
+    mark("MOCHI-STOP", "code=ROUTE-DISABLED userland-only; valid-stop=primitive|host|native|apm|apm-events|priv-evidence; no-kernel-launch");
     state("This research build only runs WebKit, host or native checks", "bad");
     try { clearInterval(watchdog); } catch (ignored) {}
     return;
@@ -455,9 +456,10 @@ let allDone = false,
 
     const PRIMITIVE_ONLY = params.get("stop") === "primitive";
     const HOST_VALIDATE = params.get("stop") === "host";
+    const PRIV_EVIDENCE = params.get("stop") === "priv-evidence";
     const APM_EVENTS = params.get("stop") === "apm-events";
     const APM_REACH = params.get("stop") === "apm" || APM_EVENTS;
-    const NATIVE_VALIDATE = params.get("stop") === "native" || APM_REACH;
+    const NATIVE_VALIDATE = params.get("stop") === "native" || PRIV_EVIDENCE || APM_REACH;
     if (MOCHI_DIAG) {
       mark("MOCHI-RUN", "v0.4.4-R3 mode=" + MOCHI_MODE + " attempts=" + ATTEMPTS + " firmware-user-agent=" + fwKey + " original-engine=v0.4.4 inherited-webkit=13.52/14.00");
       mark("MOCHI-BOUNDARY", "userland-only afterglow-not-loaded kernel-trigger-disabled");
@@ -849,6 +851,7 @@ let allDone = false,
     const requiredSyscalls = Object.keys(SYS).filter((k) => {
       if (k === "open") return APM_REACH;
       if (k === "kqueue" || k === "kevent") return APM_EVENTS;
+      if (k === "geteuid") return PRIV_EVIDENCE;
       return true;
     });
     const need = new Set(
@@ -870,6 +873,14 @@ let allDone = false,
     if (MOCHI_DIAG) mark("MOCHI-STEP", "02 host byte-signatures=" + gated + "/" + GAD.length + " stubs-seeded=" + seeded + " stubs-scanned=" + scanned);
     const miss = requiredSyscalls.filter((k) => !stubAddr.has(SYS[k]));
     if (!check("syscall-page-needs-stub", miss.length === 0, miss.join(","))) {
+      if (PRIV_EVIDENCE) {
+        mark("MOCHI-PRIV", "VERDICT=INCONCLUSIVE reason=missing-syscall-stubs");
+        mark("MOCHI-TERMINAL", "mode=priv-evidence result=INCONCLUSIVE restored=NOT-ARMED kernel=NOT-TESTED");
+        state("Privilege evidence inconclusive: required syscall unavailable", "bad");
+        allDone = true;
+        try { clearInterval(watchdog); } catch (ignored) {}
+        finishUI(false);
+      }
       if (HOST_VALIDATE) {
         mark("HOST-VALIDATION", "FAIL syscall-stubs-missing=" + miss.join(","));
         state("Host validation incomplete: syscall stubs missing", "bad");
@@ -1069,11 +1080,11 @@ let allDone = false,
       // Stage 4 fork: one bounded /dev/apm open/close. No kqueue, kevent,
       // ioctl, retry loop, race, kernel memory access or payload.
       // Refuse launch if the user came to the APM route directly (e.g. page restore).
-      if (APM_REACH && !FROM_LANDING) {
-        mark("MOCHI-APM", "REFUSED referrer-missing use-index-page no-syscalls-run");
+      if ((APM_REACH || PRIV_EVIDENCE) && !FROM_LANDING) {
+        mark("MOCHI-BOUNDARY", "REFUSED referrer-missing use-index-page no-syscalls-run");
         var notArmedRestored = restoreMainPointer();
-        mark("MOCHI-TERMINAL", "mode=apm result=REFUSED restored=" + (notArmedRestored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
-        state("APM diagnostic requires launch from index.html", "bad");
+        mark("MOCHI-TERMINAL", "mode=" + (PRIV_EVIDENCE ? "priv-evidence" : "apm") + " result=REFUSED restored=" + (notArmedRestored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
+        state("Diagnostic requires launch from index.html", "bad");
         allDone = true;
         try { clearInterval(watchdog); } catch (ignored) {}
         finishUI(false);
@@ -1181,6 +1192,33 @@ let allDone = false,
           }
         }
       }
+      // Stage 6: capture the unprivileged process' identity as a pre-exploit
+      // baseline. These are ordinary read-only syscalls. No kernel exploit
+      // is present in this fork; even euid==0 would not prove kernel R/W.
+      let privEvidence = null;
+      if (PRIV_EVIDENCE) {
+        if (nativeError !== null) {
+          privEvidence = { verdict: "INCONCLUSIVE", reason: "native-call-error" };
+        } else {
+          try {
+            const effectiveUid = sc(SYS.geteuid).i32;
+            const realGid = sc(SYS.getgid).i32;
+            const effectiveGid = sc(SYS.getegid).i32;
+            const identityValid = nativePid > 0 && nativeUid >= 0 &&
+              effectiveUid >= 0 && realGid >= 0 && effectiveGid >= 0;
+            privEvidence = {
+              pid: nativePid, uid: nativeUid, euid: effectiveUid,
+              gid: realGid, egid: effectiveGid,
+              verdict: !identityValid ? "INCONCLUSIVE" :
+                effectiveUid === 0 ? "EUID-ZERO-OBSERVED" : "NOT-ESCALATED",
+              reason: !identityValid ? "negative-or-invalid-identity" :
+                "ordinary-userland-syscalls"
+            };
+          } catch (err) {
+            privEvidence = { verdict: "INCONCLUSIVE", reason: "identity-call-exception:" + String(err) };
+          }
+        }
+      }
       var restored = restoreMainPointer();
       var valid = nativeError === null && nativePid > 0 && nativeUid >= 0;
       if (nativeError === null) {
@@ -1196,6 +1234,21 @@ let allDone = false,
         mark(APM_EVENTS ? "MOCHI-EVENT" : "MOCHI-APM", "VERDICT=" + label + " UAF=NOT-TESTED kernel-rw=NOT-TESTED kernel-exec=NOT-TESTED");
         mark("MOCHI-TERMINAL", "mode=" + (APM_EVENTS ? "apm-events" : "apm") + " result=" + label + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
         state(APM_EVENTS ? (eventComplete ? "APM event registration/removal passed; UAF not tested" : "APM event lifecycle incomplete: " + label) : (reachable ? "APM driver reachable; UAF not tested" : "APM reachability inconclusive or denied"), (APM_EVENTS ? eventComplete : reachable) ? "good" : "bad");
+      } else if (PRIV_EVIDENCE) {
+        const evidence = privEvidence || { verdict: "INCONCLUSIVE", reason: "no-evidence" };
+        if (!restored) evidence.verdict = "INCONCLUSIVE";
+        mark("MOCHI-PRIV", "pid=" + (evidence.pid == null ? "UNKNOWN" : evidence.pid) +
+          " uid=" + (evidence.uid == null ? "UNKNOWN" : evidence.uid) +
+          " euid=" + (evidence.euid == null ? "UNKNOWN" : evidence.euid) +
+          " gid=" + (evidence.gid == null ? "UNKNOWN" : evidence.gid) +
+          " egid=" + (evidence.egid == null ? "UNKNOWN" : evidence.egid));
+        mark("MOCHI-PRIV", "VERDICT=" + evidence.verdict + " reason=" + evidence.reason +
+          " scope=PROCESS-IDENTITY kernel-read=NO kernel-write=NO kernel-exec=NO");
+        mark("MOCHI-PRIV", "INTERPRETATION euid-zero-is-NOT-kernel-read-write-proof; compare-after-an-independently-verified-kernel-entry");
+        mark("MOCHI-TERMINAL", "mode=priv-evidence result=" + evidence.verdict +
+          " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=NOT-TESTED");
+        state("Privilege evidence: " + evidence.verdict + " (kernel not tested)",
+          evidence.verdict === "NOT-ESCALATED" ? "warn" : "bad");
       } else {
         if (valid && restored) mark("NATIVE-ONLY-PASS", "getpid/getuid succeeded; function-pointer-restored-and-verified; kernel-not-tested");
         mark("MOCHI-TERMINAL", "mode=native result=" + (valid && restored ? "PASS" : "FAIL") + " restored=" + (restored ? "VERIFIED" : "NOT-VERIFIED") + " kernel=no");
@@ -1203,7 +1256,8 @@ let allDone = false,
       }
       allDone = true;
       try { clearInterval(watchdog); } catch (ignored) {}
-      finishUI(APM_REACH ? (APM_EVENTS ? (eventVerdict === "REGISTER-DELETE-PASS" && kqCloseRc === 0 && apmFd >= 0 && apmClose === 0 && !apmError && valid && restored) : (apmFd >= 0 && apmClose === 0 && !apmError && valid && restored)) : (valid && restored));
+      finishUI(PRIV_EVIDENCE ? (privEvidence && privEvidence.verdict !== "INCONCLUSIVE" && restored)
+        : APM_REACH ? (APM_EVENTS ? (eventVerdict === "REGISTER-DELETE-PASS" && kqCloseRc === 0 && apmFd >= 0 && apmClose === 0 && !apmError && valid && restored) : (apmFd >= 0 && apmClose === 0 && !apmError && valid && restored)) : (valid && restored));
       return;
     }
     // Fail closed if a future change bypasses the explicit mode branches.

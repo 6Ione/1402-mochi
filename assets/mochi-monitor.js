@@ -3,7 +3,10 @@
   "use strict";
   function id(x) { return document.getElementById(x); }
   var params = window.location.search || "";
-  var mode = /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
+  var mode = /(?:\?|&)stop=priv-evidence(?:&|$)/.test(params) ? "PRIVILEGE EVIDENCE"
+    : /(?:\?|&)stop=apm-events(?:&|$)/.test(params) ? "APM EVENT"
+    : /(?:\?|&)stop=apm(?:&|$)/.test(params) ? "APM REACHABILITY"
+    : /(?:\?|&)stop=host(?:&|$)/.test(params) ? "HOST VALIDATION"
     : /(?:\?|&)stop=primitive(?:&|$)/.test(params) ? "WEBKIT ONLY"
     : /(?:\?|&)stop=native(?:&|$)/.test(params) ? "NATIVE VALIDATION" : "DISABLED ROUTE";
   if (id("active-mode")) id("active-mode").textContent = mode;
@@ -37,6 +40,11 @@
       set("mochi-stop","Kernel success requires independent verification");
     } else if(/AG-PREFLIGHT-PASS/.test(t)) {
       set("m-afterglow","Preflight PASS only","caution-text");
+    }
+    if (/MOCHI-PRIV\s+VERDICT=/.test(t)) {
+      var priv=last(t,/MOCHI-PRIV\s+VERDICT=([^\s]+)/g);
+      set("mochi-stop", "Process identity: " + (priv ? priv[1] : "INCONCLUSIVE") + "; kernel not tested");
+      set("m-state", "PROCESS IDENTITY RECORDED");
     }
     if (/NATIVE-ONLY-PASS/.test(t)) {
       set("mochi-stop", "Read-only getpid/getuid passed; kernel not tested", "good");

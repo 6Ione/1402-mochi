@@ -1,0 +1,19 @@
+{
+  "name": "Mochi R3 Stage 6 Privilege Evidence",
+  "firmware_target": "14.02",
+  "based_on": "Stage 5 successful user-reported APM registration/removal",
+  "stage6_exploit_attempt": false,
+  "stage6_kernel_read_write": false,
+  "test_scope": "getpid/getuid/geteuid/getgid/getegid and userland function pointer restoration",
+  "original_userland_sha256": {
+    "core.js": "cfd9f607254913958d506627e35b1a72f7337fc39f08d3f560767e7e47797f87",
+    "mem.js": "e58704779bc896cf25c371181f7986d368918d4198a7f30d8d8a947b5fafc08b"
+  },
+  "expected_original_userland_sha256": {
+    "core.js": "cfd9f607254913958d506627e35b1a72f7337fc39f08d3f560767e7e47797f87",
+    "mem.js": "e58704779bc896cf25c371181f7986d368918d4198a7f30d8d8a947b5fafc08b"
+  },
+  "stage6_engine_sha256": "f35d8de5a4d6f2265cdb56c0fc1a28a6b128b38e9c9aea19584ccaf100855bef",
+  "static_checks_passed": "14/14 structural checks; Stage4 APM 48/48 read-only checks on supplied 14.02 ELF; no independent provenance",
+  "ps4_tested": false
+}
