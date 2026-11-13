@@ -1,0 +1,10 @@
+{
+  "build": "Mochi Stage10 Screenshot Evidence Fork",
+  "mode": "priv-evidence (existing Stage6 code)",
+  "protected_files": {
+    "core.js": "cfd9f607254913958d506627e35b1a72f7337fc39f08d3f560767e7e47797f87",
+    "mem.js": "e58704779bc896cf25c371181f7986d368918d4198a7f30d8d8a947b5fafc08b",
+    "mochi-engine.js": "f35d8de5a4d6f2265cdb56c0fc1a28a6b128b38e9c9aea19584ccaf100855bef"
+  },
+  "native_engine_unchanged": true
+}

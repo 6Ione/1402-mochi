@@ -6,9 +6,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#151329">
   <meta name="referrer" content="same-origin">
-  <title>Mochi · v0.4.4-R3 Compatibility Evidence</title>
+  <title>Mochi · Stage 10 Evidence Screenshot</title>
   <link rel="stylesheet" href="./assets/mochi-launch.css?v=044r3stage6">
   <link rel="stylesheet" href="./assets/mochi-diagnostics.css?v=044r3stage6">
+  <link rel="stylesheet" href="./assets/mochi-stage10.css?v=s10a">
 </head>
 <body class="launch-page">
 <div class="haze h1"></div><div class="haze h2"></div>
@@ -18,6 +19,17 @@
     <div class="head-right"><span class="chip chip-fw" id="active-mode">PREPARING</span><span class="chip">v0.4.4-R3</span></div>
   </header>
   <main class="run-main">
+    <section id="s10-snapshot" class="s10-snapshot" aria-label="Stage 10 runtime evidence">
+      <div class="s10-title">STAGE 10 · LIVE PS4 EVIDENCE <span id="s10-run-status">AWAITING RESULT</span></div>
+      <div class="s10-grid">
+        <div><small>FIRMWARE (USER AGENT)</small><strong id="s10-fw">Inspecting…</strong></div>
+        <div><small>PROCESS IDENTITY</small><strong id="s10-identity">Awaiting native call</strong></div>
+        <div><small>POINTER RESTORATION</small><strong id="s10-restore">Awaiting result</strong></div>
+        <div><small>FINAL VERDICT</small><strong id="s10-verdict">Not available</strong></div>
+      </div>
+      <p id="s10-boundary">This test does NOT attempt a kernel UAF, kernel read/write, kernel execution, or privilege escalation.</p>
+      <p class="s10-small">Screenshot this panel together with the MOCHI-PRIV / MOCHI-RESTORE / MOCHI-TERMINAL log lines below. Values appear only after the live engine reports them.</p>
+    </section>
     <div class="run-head">
       <div><div class="eyebrow"><span class="live-dot"></span> LIVE ENGINE OUTPUT</div><h1>Let's see what sticks<span class="brand-dot">.</span></h1><p>Research-only diagnostics. Read-only process privilege evidence or bounded APM event test. No kernel memory operations or payload execution.</p></div>
       <img class="run-mascot" src="./assets/mochi-icon.png" alt="Mochi mascot">
@@ -45,6 +57,7 @@
   <footer><span>MOCHI · USERLAND VALIDATION</span><span>Kernel route disabled · original source preserved for offline research</span></footer>
 </div>
 <script src="./assets/mochi-monitor.js?v=044r3stage6"></script>
+<script src="./assets/mochi-stage10.js?v=s10a"></script>
 <script src="./assets/mochi-capture.js?v=044r3stage6"></script>
 <script type="module">
 import("./assets/baseline-044r3/mochi-engine.js?v=044r3stage6priv1").catch(function (error) {
